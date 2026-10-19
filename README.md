@@ -47,15 +47,15 @@
 
 ## 下载
 
-Release 中的文件：
+`latest` Release 中的文件：
 
 | 文件 | 说明 |
 | --- | --- |
 | `WebViewInstaller.apk` | 安装器，已内置 overlay |
-| `WebViewOverlay.apk` | overlay 归档副本，供离线使用或核对 |
-| `*.sha256` | 对应文件的 SHA-256 校验值 |
+| `WebViewInstaller.apk.sha256` | 安装器的 SHA-256 校验值 |
 
-WebView 本体由安装器从 `webview-assets` Release 下载，也可手动下载后安装。
+`webview-assets` Release 提供安装器下载的 WebView 本体，以及 overlay 归档副本
+`WebViewOverlay.apk`（供离线使用或核对），也可手动下载后安装。
 
 ## 注意事项
 

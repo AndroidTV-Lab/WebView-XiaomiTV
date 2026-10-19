@@ -201,13 +201,11 @@ jobs:
             Dated build `${{ steps.version.outputs.name }}` (versionCode `${{ steps.version.outputs.code }}`, run `${{ github.run_number }}`).
 
             The installer carries the overlay inside its APK and deploys that bundled copy.
+            The standalone overlay archive is published to the `webview-assets` release.
 
-            - `WebViewOverlay.apk` — static RRO for `config_webview_packages` (archive copy)
             - `WebViewInstaller.apk` — TV installer (package `com.tvlaunchers.webviewinstaller`)
-            - `.sha256` files — verify with `sha256sum -c` or the installer itself
+            - `.sha256` — verify with `sha256sum -c` or the installer itself
           files: |
-            out/WebViewOverlay.apk
-            out/WebViewOverlay.apk.sha256
             out/WebViewInstaller.apk
             out/WebViewInstaller.apk.sha256
           draft: false
@@ -215,3 +213,20 @@ jobs:
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload overlay to webview-assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The overlay archive lives in the long-lived assets release consumed by tooling,
+          # not in the dated latest release. The installer still embeds its own copy.
+          if ! gh release view webview-assets --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create webview-assets --repo "$GITHUB_REPOSITORY" \
+              --title "WebView Assets" \
+              --notes "Long-lived assets release. WebView APKs and manifest.json are maintained manually; CI refreshes WebViewOverlay.apk and its checksum."
+          fi
+          gh release upload webview-assets --repo "$GITHUB_REPOSITORY" \
+            out/WebViewOverlay.apk \
+            out/WebViewOverlay.apk.sha256 \
+            --clobber
