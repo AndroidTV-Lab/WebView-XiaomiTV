@@ -1,8 +1,6 @@
 package com.tvlaunchers.webviewinstaller.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -150,24 +148,18 @@ private fun OverviewCard(
                 fontSize = BodySize,
             )
         } else {
-            OverviewContent(vm, status)
+            OverviewContent(vm, status, canWrite, installFocus)
         }
-
-        Spacer(Modifier.height(14.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color(0xFF2A333D)),
-        )
-        Spacer(Modifier.height(14.dp))
-
-        ActionsContent(vm, canWrite, installFocus)
     }
 }
 
 @Composable
-private fun OverviewContent(vm: InstallerViewModel, status: DeviceStatus) {
+private fun OverviewContent(
+    vm: InstallerViewModel,
+    status: DeviceStatus,
+    canWrite: Boolean,
+    installFocus: FocusRequester,
+) {
     val rootValue = if (status.rootAvailable) {
         stringResource(R.string.root_available) + " · " +
             stringResource(R.string.root_uid, status.rootUid ?: "?")
@@ -231,29 +223,68 @@ private fun OverviewContent(vm: InstallerViewModel, status: DeviceStatus) {
             label = stringResource(R.string.overview_root),
             value = rootValue,
             valueColor = rootColor,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(0.9f),
         )
-        OverviewItem(
+        OverviewActionItem(
             label = stringResource(R.string.current_provider),
             value = providerValue,
             valueColor = providerColor,
-            modifier = Modifier.weight(1.4f),
+            actionLabel = stringResource(R.string.action_set_default),
+            onAction = { vm.openScreen(Screen.Default) },
+            enabled = canWrite,
+            modifier = Modifier.weight(1.3f),
         )
-        OverviewItem(
+        OverviewActionItem(
             label = stringResource(R.string.overview_overlay),
             value = overlayValue,
             valueColor = overlayColor,
-            modifier = Modifier.weight(1.5f),
+            actionLabel = stringResource(R.string.action_deploy_overlay),
+            onAction = { vm.requestOverlayDeploy() },
+            enabled = canWrite,
+            modifier = Modifier.weight(1.3f),
         )
     }
 
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(12.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        for (packageName in Known.ALL_PACKAGES) {
-            ProviderCell(vm, status, packageName, Modifier.weight(1f))
+        Row(
+            modifier = Modifier.weight(3.5f),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            for (packageName in Known.ALL_PACKAGES) {
+                ProviderCell(vm, status, packageName, Modifier.weight(1f))
+            }
+        }
+        Column(
+            modifier = Modifier.weight(0.8f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(
+                onClick = { vm.openScreen(Screen.Install) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(installFocus),
+                enabled = canWrite,
+            ) {
+                Text(stringResource(R.string.action_install_webview))
+            }
+            Button(
+                onClick = { vm.requestRestore() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canWrite,
+                colors = ButtonDefaults.colors(
+                    containerColor = Color(0xFF5A1F1F),
+                    contentColor = Color(0xFFFFCDD2),
+                    focusedContainerColor = Danger,
+                    focusedContentColor = Color.White,
+                ),
+            ) {
+                Text(stringResource(R.string.action_restore))
+            }
         }
     }
 
@@ -294,6 +325,43 @@ private fun OverviewItem(
     }
 }
 
+/** A status column whose action sits directly under the value it operates on. */
+@Composable
+private fun OverviewActionItem(
+    label: String,
+    value: String,
+    valueColor: Color,
+    actionLabel: String,
+    onAction: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
+        Text(
+            text = label,
+            color = Muted,
+            fontSize = SmallSize,
+            maxLines = 1,
+        )
+        Text(
+            text = value,
+            color = valueColor,
+            fontSize = BodySize,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = onAction,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+        ) {
+            Text(actionLabel)
+        }
+    }
+}
+
 @Composable
 private fun ProviderCell(
     vm: InstallerViewModel,
@@ -331,60 +399,5 @@ private fun ProviderCell(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-    }
-}
-
-@Composable
-private fun ActionsContent(
-    vm: InstallerViewModel,
-    canWrite: Boolean,
-    installFocus: FocusRequester,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Button(
-            onClick = { vm.openScreen(Screen.Install) },
-            modifier = Modifier
-                .weight(1f)
-                .focusRequester(installFocus),
-            enabled = canWrite,
-        ) {
-            Text(stringResource(R.string.action_install_webview))
-        }
-        Button(
-            onClick = { vm.requestOverlayDeploy() },
-            modifier = Modifier.weight(1f),
-            enabled = canWrite,
-        ) {
-            Text(stringResource(R.string.action_deploy_overlay))
-        }
-    }
-    Spacer(Modifier.height(12.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Button(
-            onClick = { vm.openScreen(Screen.Default) },
-            modifier = Modifier.weight(1f),
-            enabled = canWrite,
-        ) {
-            Text(stringResource(R.string.action_set_default))
-        }
-        Button(
-            onClick = { vm.requestRestore() },
-            modifier = Modifier.weight(1f),
-            enabled = canWrite,
-            colors = ButtonDefaults.colors(
-                containerColor = Color(0xFF5A1F1F),
-                contentColor = Color(0xFFFFCDD2),
-                focusedContainerColor = Danger,
-                focusedContentColor = Color.White,
-            ),
-        ) {
-            Text(stringResource(R.string.action_restore))
-        }
     }
 }

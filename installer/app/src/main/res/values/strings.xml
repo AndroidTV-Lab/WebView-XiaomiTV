@@ -55,9 +55,9 @@
 
     <string name="installer_version">安装器版本</string>
 
-    <string name="action_install_webview">安装 / 更新 WebView</string>
-    <string name="action_deploy_overlay">重新部署 Overlay</string>
-    <string name="action_set_default">设置默认 WebView</string>
+    <string name="action_install_webview">安装 / 更新</string>
+    <string name="action_deploy_overlay">重新部署</string>
+    <string name="action_set_default">设置默认</string>
     <string name="action_restore">完整还原</string>
 
     <string name="non_mulan_title">非目标设备</string>

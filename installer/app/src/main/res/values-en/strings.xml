@@ -55,9 +55,9 @@
 
     <string name="installer_version">Installer version</string>
 
-    <string name="action_install_webview">Install / update WebView</string>
-    <string name="action_deploy_overlay">Redeploy overlay</string>
-    <string name="action_set_default">Set default WebView</string>
+    <string name="action_install_webview">Install</string>
+    <string name="action_deploy_overlay">Redeploy</string>
+    <string name="action_set_default">Set default</string>
     <string name="action_restore">Full restore</string>
 
     <string name="non_mulan_title">Unexpected device</string>
