@@ -33,8 +33,10 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled = false
-            shrinkResources = false
+            // R8 strips the unused Compose/Kotlin classes; the app uses no reflection, so the
+            // library consumer rules shipped with Compose and coroutines are sufficient.
+            minifyEnabled = true
+            shrinkResources = true
             if (envKeystore) {
                 signingConfig = signingConfigs.release
             }
