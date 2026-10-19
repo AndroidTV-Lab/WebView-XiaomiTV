@@ -13,7 +13,7 @@ val BackgroundBottom = Color(0xFF080D13)
 
 val CardBackground = Color(0xFF151E28)
 val CardBackgroundMuted = Color(0xFF111923)
-val CardBorder = Color(0xFF243240)
+val CardBorder = Color(0xFF1C2734)
 
 val RowBackground = Color(0xFF1B2633)
 val RowBackgroundFocused = Color(0xFF243B50)
@@ -30,7 +30,7 @@ val Danger = Color(0xFFFF6B6B)
 // The TV reports 1920x1080 at density 320, i.e. only 960x540 dp. Sizes are tuned so the whole
 // status page (root, actions, WebView, overlay, installed providers) fits on one screen.
 val ScreenPadding = 20.dp
-val SectionSpacing = 8.dp
+val SectionSpacing = 6.dp
 
 val TitleSize = 28.sp
 val SectionTitleSize = 16.sp

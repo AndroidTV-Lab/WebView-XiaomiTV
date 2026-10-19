@@ -155,7 +155,7 @@ private fun OverviewCard(
     canAct: Boolean,
     firstActionFocus: FocusRequester,
 ) {
-    Section(title = "", spacing = 5.dp) {
+    Section(title = "", spacing = 3.dp) {
         if (status == null) {
             Text(
                 text = if (state.rootChecking) {

@@ -59,9 +59,14 @@ fun Section(
                 },
             )
             .background(CardBackground, shape)
-            // Read-only cards take focus so D-pad can scroll them into view on a TV.
-            .border(2.dp, if (focused) Accent else CardBorder, shape)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            // Read-only cards take focus so D-pad can scroll them into view on a TV. The resting
+            // outline stays hairline-thin; only the focused state earns a bright accent edge.
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = if (focused) Accent else CardBorder,
+                shape = shape,
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
         if (title.isNotEmpty()) {
