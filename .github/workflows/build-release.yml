@@ -134,11 +134,13 @@ jobs:
           grep -q 'priority' manifest.txt
 
           "$BT/aapt2" dump xmltree --file res/xml/config_webview_packages.xml out/WebViewOverlay.apk | tee providers.txt
-          # The first provider must be Thorium; Google must remain as the fallback.
+          # The first provider must be Thorium; Google stays selectable but must not be a
+          # fallback, or system_server disables it (enabled=3) whenever another valid
+          # provider is installed.
           grep -m1 'packageName' providers.txt | grep -q 'com.thorium.webview'
           grep -q 'org.axpos.aosmium_wv' providers.txt
           grep -q 'com.google.android.webview' providers.txt
-          grep -q 'isFallback' providers.txt
+          ! grep -q 'isFallback' providers.txt
 
       - name: Bundle overlay into installer
         run: |
