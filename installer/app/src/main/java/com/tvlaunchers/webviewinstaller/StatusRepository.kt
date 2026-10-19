@@ -124,7 +124,7 @@ class StatusRepository(private val context: Context) {
             rootAvailable = rootAvailable,
             rootUid = probe.uid,
             rootError = rootError,
-            storageDir = RootPaths.downloadBaseDir(context).absolutePath,
+            storageDir = RootPaths.publicDownloadDir().absolutePath,
             webviewSetting = setting,
             currentProvider = currentProvider,
             currentVersion = currentVersion,

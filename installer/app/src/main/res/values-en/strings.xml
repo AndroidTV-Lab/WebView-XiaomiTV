@@ -58,11 +58,13 @@
     <string name="action_install_webview">Install</string>
     <string name="action_deploy_overlay">Redeploy</string>
     <string name="action_set_default">Set default</string>
+    <string name="action_uninstall">Uninstall</string>
     <string name="action_restore">Restore system defaults</string>
     <string name="restore_row_hint">Cannot be undone</string>
     <string name="hint_set_default">Set</string>
     <string name="hint_deploy">Deploy</string>
     <string name="hint_download">Download</string>
+    <string name="hint_manage">Manage</string>
     <string name="hint_restore">Restore</string>
 
     <string name="non_mulan_title">Unexpected device</string>
@@ -138,6 +140,14 @@
     <string name="restore_success">Restore complete. Please reboot the device.</string>
     <string name="restore_failed">Restore failed: %1$s</string>
 
+    <string name="uninstall_title">Uninstall %1$s</string>
+    <string name="uninstall_message">%1$s will be uninstalled from this device. If it is the current default WebView, a reboot is required before the system falls back to another provider. Continue?</string>
+    <string name="uninstall_yes">Uninstall</string>
+    <string name="uninstall_no">Cancel</string>
+    <string name="uninstall_running">Uninstalling %1$s…</string>
+    <string name="uninstall_success">%1$s uninstalled.</string>
+    <string name="uninstall_failed">Uninstall failed: %1$s</string>
+
     <string name="error_title">Operation failed</string>
     <string name="error_ok">OK</string>
     <string name="error_log">View log</string>
@@ -151,11 +161,6 @@
     <string name="set_default_after_install_message">Set %1$s as the default WebView? It takes effect after a reboot.</string>
     <string name="set_default_after_install_yes">Set default</string>
     <string name="set_default_after_install_no">Later</string>
-
-    <string name="permission_title">Storage permission required</string>
-    <string name="permission_message">Used to download APKs to /sdcard/Download/WebViewInstaller. If denied, the app-specific directory is used instead.</string>
-    <string name="permission_grant">Grant permission</string>
-    <string name="permission_denied">Storage permission denied. The app-specific directory will be used.</string>
 
     <string name="name_thorium">Thorium WebView</string>
     <string name="name_aosmium">AOSmium WebView</string>

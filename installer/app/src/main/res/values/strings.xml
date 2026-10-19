@@ -58,11 +58,13 @@
     <string name="action_install_webview">安装 / 更新</string>
     <string name="action_deploy_overlay">重新部署</string>
     <string name="action_set_default">设置默认</string>
+    <string name="action_uninstall">卸载</string>
     <string name="action_restore">恢复系统默认设置</string>
     <string name="restore_row_hint">不可撤销</string>
     <string name="hint_set_default">设置</string>
     <string name="hint_deploy">部署</string>
     <string name="hint_download">下载</string>
+    <string name="hint_manage">管理</string>
     <string name="hint_restore">恢复</string>
 
     <string name="non_mulan_title">非目标设备</string>
@@ -138,6 +140,14 @@
     <string name="restore_success">还原完成，请重启设备。</string>
     <string name="restore_failed">还原失败：%1$s</string>
 
+    <string name="uninstall_title">卸载 %1$s</string>
+    <string name="uninstall_message">将从设备中卸载 %1$s。如果它当前是默认 WebView，卸载后需要重启，系统才会回退到其他 provider。是否继续？</string>
+    <string name="uninstall_yes">卸载</string>
+    <string name="uninstall_no">取消</string>
+    <string name="uninstall_running">正在卸载 %1$s…</string>
+    <string name="uninstall_success">%1$s 已卸载。</string>
+    <string name="uninstall_failed">卸载失败：%1$s</string>
+
     <string name="error_title">操作失败</string>
     <string name="error_ok">知道了</string>
     <string name="error_log">查看日志</string>
@@ -151,11 +161,6 @@
     <string name="set_default_after_install_message">是否将 %1$s 设为默认 WebView？重启后生效。</string>
     <string name="set_default_after_install_yes">设为默认</string>
     <string name="set_default_after_install_no">稍后</string>
-
-    <string name="permission_title">需要存储权限</string>
-    <string name="permission_message">用于把 APK 下载到 /sdcard/Download/WebViewInstaller。拒绝后将改用应用专属目录。</string>
-    <string name="permission_grant">授予权限</string>
-    <string name="permission_denied">未授予存储权限，将使用应用专属目录。</string>
 
     <string name="name_thorium">Thorium WebView</string>
     <string name="name_aosmium">AOSmium WebView</string>

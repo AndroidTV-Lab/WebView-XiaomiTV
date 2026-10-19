@@ -10,6 +10,7 @@ sealed interface DialogState {
     data class ConfirmDownload(val asset: WebViewAsset) : DialogState
     data object ConfirmOverlay : DialogState
     data object ConfirmRestore : DialogState
+    data class ConfirmUninstall(val packageName: String) : DialogState
     data class Reboot(val message: String) : DialogState
     data class SetDefaultAfterInstall(val packageName: String) : DialogState
     data class OverlayRequired(val packageName: String) : DialogState

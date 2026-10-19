@@ -95,8 +95,21 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
                 return@launch
             }
             _ui.update {
+                // A local-only refresh does not fetch the manifest, so it reports an empty
+                // asset list. Keep the previously fetched one; otherwise every operation that
+                // refreshes locally (install, uninstall, set default) would disable the
+                // download/update button until the user refreshes remotely again.
+                val merged = if (!remote &&
+                    status.assets.isEmpty() &&
+                    status.manifestError == null &&
+                    it.status?.assets?.isNotEmpty() == true
+                ) {
+                    status.copy(assets = it.status.assets)
+                } else {
+                    status
+                }
                 it.copy(
-                    status = status,
+                    status = merged,
                     loading = false,
                     refreshing = false,
                     rootChecking = false,
@@ -104,10 +117,6 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
         }
-    }
-
-    fun onStoragePermissionChanged() {
-        refresh(remote = false)
     }
 
     fun openScreen(screen: Screen) {
@@ -330,6 +339,48 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun requestUninstall(packageName: String) {
+        if (_ui.value.download.active) return
+        if (Known.targetFor(packageName) == null) return
+        if (!requireRoot()) return
+        _ui.update { it.copy(dialog = DialogState.ConfirmUninstall(packageName)) }
+    }
+
+    fun confirmUninstall(packageName: String) {
+        val target = Known.targetFor(packageName) ?: return
+        if (!requireRoot()) return
+        _ui.update { it.copy(dialog = null) }
+        viewModelScope.launch {
+            _ui.update {
+                it.copy(busyLabel = getString(R.string.uninstall_running, label(target.packageName)))
+            }
+            val result = RootShell.run(
+                workDir = RootPaths.workDir(getApplication()),
+                scriptBody = RootTasks.uninstall(target.packageName),
+                timeoutMs = 120_000,
+            )
+            _ui.update { it.copy(busyLabel = null) }
+            if (!result.ok) {
+                showError(
+                    title = getString(R.string.error_title),
+                    message = getString(R.string.uninstall_failed, result.message ?: ""),
+                    log = result.log,
+                )
+                return@launch
+            }
+            val wasDefault = _ui.value.status?.currentProvider == target.packageName
+            toast(getString(R.string.uninstall_success, label(target.packageName)))
+            refresh(remote = false)
+            // A removed default provider stays in the setting until the system reboots and
+            // re-resolves the provider list.
+            if (wasDefault) {
+                _ui.update {
+                    it.copy(dialog = DialogState.Reboot(getString(R.string.reboot_message)))
+                }
+            }
+        }
+    }
+
     fun rebootNow() {
         _ui.update { it.copy(dialog = null) }
         viewModelScope.launch {
@@ -389,7 +440,11 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
             }
             val result = RootShell.run(
                 workDir = RootPaths.workDir(getApplication()),
-                scriptBody = RootTasks.install(path, asset.packageName),
+                scriptBody = RootTasks.install(
+                    path,
+                    asset.packageName,
+                    publicFileName(asset),
+                ),
                 timeoutMs = 300_000,
             )
             _ui.update { it.copy(busyLabel = null) }
@@ -447,6 +502,10 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun getString(resId: Int, vararg args: Any): String =
         getApplication<Application>().getString(resId, *args)
+
+    /** Manifest IDs are remote input: keep the published file name to a safe basename. */
+    private fun publicFileName(asset: WebViewAsset): String =
+        asset.id.replace(Regex("[^A-Za-z0-9._-]"), "_") + ".apk"
 
     companion object {
         private val PACKAGE_NAME = Regex("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+")

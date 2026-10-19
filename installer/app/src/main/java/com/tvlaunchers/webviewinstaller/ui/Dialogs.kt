@@ -72,6 +72,7 @@ fun DialogHost(vm: InstallerViewModel, dialog: DialogState) {
                     is DialogState.ConfirmDownload -> ConfirmDownloadDialog(vm, dialog)
                     is DialogState.ConfirmOverlay -> ConfirmOverlayDialog(vm)
                     is DialogState.ConfirmRestore -> ConfirmRestoreDialog(vm)
+                    is DialogState.ConfirmUninstall -> ConfirmUninstallDialog(vm, dialog)
                     is DialogState.Reboot -> RebootDialog(vm, dialog)
                     is DialogState.SetDefaultAfterInstall -> SetDefaultAfterInstallDialog(vm, dialog)
                     is DialogState.OverlayRequired -> OverlayRequiredDialog(vm, dialog)
@@ -151,6 +152,26 @@ private fun ConfirmRestoreDialog(vm: InstallerViewModel) {
                 focusedContainerColor = Danger,
                 focusedContentColor = Color.White,
             ),
+        )
+    }
+}
+
+@Composable
+private fun ConfirmUninstallDialog(
+    vm: InstallerViewModel,
+    dialog: DialogState.ConfirmUninstall,
+) {
+    val name = vm.label(dialog.packageName)
+    Column {
+        DialogTitle(stringResource(R.string.uninstall_title, name))
+        DialogBody(stringResource(R.string.uninstall_message, name))
+        DialogButtons(
+            cancelText = stringResource(R.string.uninstall_no),
+            confirmText = stringResource(R.string.uninstall_yes),
+            onCancel = { vm.dismissDialog() },
+            onConfirm = { vm.confirmUninstall(dialog.packageName) },
+            focusConfirm = false,
+            confirmColors = dangerButtonColors(),
         )
     }
 }
@@ -349,6 +370,15 @@ fun primaryButtonColors(): ButtonColors = ButtonDefaults.colors(
     contentColor = TextPrimary,
     focusedContainerColor = Accent,
     focusedContentColor = Color(0xFF00202E),
+)
+
+/** Destructive action: muted red fill, bright red focus, still obvious on a TV. */
+@Composable
+fun dangerButtonColors(): ButtonColors = ButtonDefaults.colors(
+    containerColor = Color(0xFF5A1F1F),
+    contentColor = Color(0xFFFFCDD2),
+    focusedContainerColor = Danger,
+    focusedContentColor = Color.White,
 )
 
 /** Cancel/secondary action: neutral fill, same accent focus treatment so D-pad focus is obvious. */

@@ -139,12 +139,15 @@ adb install -r WebViewInstaller.apk
 
 也可以把 APK 放到 U 盘，用电视上的文件管理器安装。首次启动时：
 
-1. 应用会请求 `WRITE_EXTERNAL_STORAGE`。授予后下载到
-   `/sdcard/Download/WebViewInstaller/downloads`；拒绝则改用应用专属外部目录，
-   功能不受影响。
-2. 检查 `Build.DEVICE`。不是 `mulan` 时弹出警告，默认按钮是**退出**，
+1. 检查 `Build.DEVICE`。不是 `mulan` 时弹出警告，默认按钮是**退出**，
    只有显式选择“仍要继续”才会继续。
-3. 如果 `/vendor/overlay` 不存在，直接终止（本工具只支持该部署方式）。
+2. 如果 `/vendor/overlay` 不存在，直接终止（本工具只支持该部署方式）。
+
+应用不请求存储权限：该固件的 `platform.xml` 把
+`READ/WRITE_EXTERNAL_STORAGE` 映射到空 gid，应用进程即使获得授权也无法写
+`/sdcard/Download`。因此 APK 先下载到应用私有目录
+`/data/data/<包名>/files/downloads`，安装时由 root 脚本复制到
+`/sdcard/Download/<id>.apk`，用户可在电视的文件管理器中找到它。
 
 ### 提权通道
 
@@ -172,8 +175,10 @@ service call TvService 4400 s16 s s16 <脚本绝对路径>
    overlay 是否存在 / 是否被系统识别 / 本地与远端哈希、已安装 WebView 列表。
    “刷新”会同时拉取 Release 的 `.sha256` 和资产清单。
 2. **安装 / 更新 WebView**：每个 WebView 显示本机版本、远端版本和大小。
-   下载完成后先校验 APK 包名，再以 root 执行 `pm install -r --user 0`。
-   可重复运行，已安装同版本时按钮显示“重新安装”。
+   下载完成后先校验 APK 包名，再以 root 执行 `pm install -r --user 0`，
+   并把 APK 复制到 `/sdcard/Download`。可重复运行，已安装同版本时按钮显示
+   “重新安装”；已安装的 WebView 会额外显示**卸载**按钮，确认后以 root 执行
+   `pm uninstall --user 0`。在状态页点击已安装的 WebView 会直接进入该管理页。
 3. **部署 Overlay**：下载 latest Release 中的 overlay，校验 `.sha256` 与包名后，
    以 root 重新挂载 `/vendor`、写入 `/vendor/overlay/WebViewOverlay.apk`、
    设置 `644 root:root`、`restorecon`、`sync`，最后重新挂载为只读。

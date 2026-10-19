@@ -2,6 +2,7 @@ package com.tvlaunchers.webviewinstaller.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -12,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -103,7 +105,8 @@ private fun AssetCard(
     val asset = status?.assets?.firstOrNull { it.packageName == target.packageName }
     val installed = status?.installed?.get(target.packageName)
     val busy = state.busyLabel != null || state.download.active
-    val canAct = asset != null && status?.rootAvailable == true && !busy
+    val rootReady = status?.rootAvailable == true && !busy
+    val canAct = asset != null && rootReady
 
     Section(stringResource(target.nameRes)) {
         Text(
@@ -129,24 +132,40 @@ private fun AssetCard(
             valueColor = if (asset == null) Muted else TextPrimary,
         )
         Spacer(Modifier.height(10.dp))
-        Button(
-            onClick = { asset?.let { vm.requestDownload(it) } },
-            enabled = canAct,
-            colors = primaryButtonColors(),
-        ) {
-            Text(
-                text = when {
-                    asset == null -> stringResource(R.string.install_asset_missing)
-                    state.download.active && state.download.assetId == asset.id ->
-                        stringResource(R.string.install_prepare)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { asset?.let { vm.requestDownload(it) } },
+                enabled = canAct,
+                colors = primaryButtonColors(),
+                // A disabled tv-material button still takes D-pad focus, which leaves the
+                // remote with no way to reach the actions next to it. Keep it out of the
+                // focus order while it cannot act.
+                modifier = Modifier.focusProperties { canFocus = canAct },
+            ) {
+                Text(
+                    text = when {
+                        asset == null -> stringResource(R.string.install_asset_missing)
+                        state.download.active && state.download.assetId == asset.id ->
+                            stringResource(R.string.install_prepare)
 
-                    installed == null -> stringResource(R.string.install_button_download)
-                    installed.versionName != asset.versionName ->
-                        stringResource(R.string.install_button_update)
+                        installed == null -> stringResource(R.string.install_button_download)
+                        installed.versionName != asset.versionName ->
+                            stringResource(R.string.install_button_update)
 
-                    else -> stringResource(R.string.install_button_reinstall)
+                        else -> stringResource(R.string.install_button_reinstall)
+                    }
+                )
+            }
+            if (installed != null) {
+                Button(
+                    onClick = { vm.requestUninstall(target.packageName) },
+                    enabled = rootReady,
+                    colors = dangerButtonColors(),
+                    modifier = Modifier.focusProperties { canFocus = rootReady },
+                ) {
+                    Text(stringResource(R.string.action_uninstall))
                 }
-            )
+            }
         }
     }
 }

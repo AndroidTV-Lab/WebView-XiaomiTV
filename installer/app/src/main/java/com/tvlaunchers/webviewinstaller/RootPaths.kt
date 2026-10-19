@@ -1,30 +1,22 @@
 package com.tvlaunchers.webviewinstaller
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Environment
-import androidx.core.content.ContextCompat
 import java.io.File
 
 /**
- * Downloads go to shared storage when possible. Scripts and logs stay in the app-private
- * directory: the TvService diagnostic process (uid 0) reads them there, and the app can always
- * read its own logs back regardless of the storage permission.
+ * The APK is downloaded into the app-private directory, which the app can always write. This
+ * firmware's `platform.xml` maps WRITE_EXTERNAL_STORAGE to no supplementary gids, so an app
+ * process cannot write (or read) `/sdcard/Download` even when the permission is granted. The
+ * root task that installs the APK copies it from here to the public Downloads directory.
+ *
+ * Scripts and logs stay in the same app-private root: the TvService diagnostic process (uid 0)
+ * reads them there, and the app can always read its own logs back.
  */
 object RootPaths {
-    fun downloadBaseDir(context: Context): File {
-        val granted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        ) == PackageManager.PERMISSION_GRANTED
-        val root = if (granted) {
-            File(Environment.getExternalStorageDirectory(), "Download")
-        } else {
-            context.getExternalFilesDir(null) ?: context.filesDir
-        }
-        return File(root, "WebViewInstaller").apply { mkdirs() }
-    }
+    /** Where the user finds the APKs; written by the root task, not by the app process. */
+    fun publicDownloadDir(): File =
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 
     fun workDir(context: Context): File = File(filesDir(context), "wvinstaller").apply { mkdirs() }
 
@@ -51,6 +43,7 @@ object RootPaths {
 
     fun logDir(workDir: File): File = File(workDir, "logs").apply { mkdirs() }
 
+    /** Working directory for in-flight downloads; only the app and the root shell need it. */
     fun downloadDir(context: Context): File =
-        File(downloadBaseDir(context), "downloads").apply { mkdirs() }
+        File(filesDir(context), "downloads").apply { mkdirs() }
 }

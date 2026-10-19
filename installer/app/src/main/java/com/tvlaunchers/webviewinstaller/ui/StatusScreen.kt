@@ -274,12 +274,16 @@ private fun OverviewCard(
                         value = installedValue(info),
                         valueColor = installedColor(info),
                         dotColor = installedColor(info),
-                        hint = stringResource(R.string.hint_download),
+                        // An installed WebView opens its detail card so it can be updated,
+                        // reinstalled or uninstalled; a missing one starts the download.
+                        hint = stringResource(
+                            if (info != null) R.string.hint_manage else R.string.hint_download
+                        ),
                         onClick = {
-                            if (asset != null) {
-                                vm.requestDownload(asset)
-                            } else {
+                            if (info != null || asset == null) {
                                 vm.openScreen(Screen.Install)
+                            } else {
+                                vm.requestDownload(asset)
                             }
                         },
                         enabled = canAct,

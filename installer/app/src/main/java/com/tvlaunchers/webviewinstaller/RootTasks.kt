@@ -5,8 +5,13 @@ package com.tvlaunchers.webviewinstaller
  * EXIT, the `run` helper (command plus redirection to the log) and `fail`.
  */
 object RootTasks {
-    fun install(apkPath: String, packageName: String): String = """
+    fun install(apkPath: String, packageName: String, publicName: String): String = """
         echo "START install $packageName"
+        # The app process cannot write public storage on this firmware (WRITE_EXTERNAL_STORAGE
+        # maps to no gids), so the user-visible copy is published here, as root.
+        run mkdir -p /sdcard/Download
+        run cp '$apkPath' '/sdcard/Download/$publicName' || run echo "WARN: publish apk failed"
+        run chmod 644 '/sdcard/Download/$publicName'
         TMP='/data/local/tmp/wvi_install.apk'
         run cp '$apkPath' "${'$'}TMP" || fail "copy apk to /data/local/tmp failed"
         run chmod 644 "${'$'}TMP"
@@ -27,6 +32,14 @@ object RootTasks {
         command -v restorecon >/dev/null 2>&1 && run restorecon ${Known.OVERLAY_PATH}
         run sync
         run mount -o ro,remount /vendor
+        echo "OK" > "${'$'}EXIT"
+    """.trimIndent()
+
+    fun uninstall(packageName: String): String = """
+        echo "START uninstall $packageName"
+        run pm uninstall --user 0 '$packageName'
+        RC=${'$'}?
+        [ "${'$'}RC" -eq 0 ] || fail "pm uninstall failed (rc=${'$'}RC)"
         echo "OK" > "${'$'}EXIT"
     """.trimIndent()
 
