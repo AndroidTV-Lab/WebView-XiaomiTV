@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -139,8 +140,8 @@ fun StatusScreen(vm: InstallerViewModel, state: UiState) {
 private fun headerSubtitle(status: DeviceStatus?): String {
     val version = "v${BuildConfig.VERSION_NAME}"
     if (status == null) return version
+    // The model is an overview row now, so the subtitle only carries the device code and OS.
     val device = listOfNotNull(
-        status.model.takeIf { it.isNotBlank() },
         status.device.takeIf { it.isNotBlank() },
         "Android ${status.androidRelease} (API ${status.sdk})",
     ).joinToString(" · ")
@@ -155,7 +156,7 @@ private fun OverviewCard(
     canAct: Boolean,
     firstActionFocus: FocusRequester,
 ) {
-    Section(title = "", spacing = 3.dp) {
+    Section(title = "", spacing = 2.dp) {
         if (status == null) {
             Text(
                 text = if (state.rootChecking) {
@@ -175,110 +176,132 @@ private fun OverviewCard(
         } else {
             stringResource(R.string.root_unavailable)
         }
-        OverviewRow(
-            label = stringResource(R.string.overview_root),
-            value = rootValue,
-            valueColor = if (status.rootAvailable) Ok else Danger,
-            dotColor = if (status.rootAvailable) Ok else Danger,
-        )
-
-        val provider = status.currentProvider
-        val providerValue = provider?.let {
-            buildString {
-                append(vm.label(it))
-                status.currentVersion?.takeIf { v -> v.isNotBlank() }?.let { v ->
-                    append(" · ").append(v)
-                }
-            }
-        } ?: stringResource(R.string.unknown)
-        OverviewRow(
-            label = stringResource(R.string.current_provider),
-            value = providerValue,
-            valueColor = if (provider == null) Muted else TextPrimary,
-            dotColor = if (provider == null) Muted else Accent,
-            hint = stringResource(R.string.hint_set_default),
-            onClick = { vm.openScreen(Screen.Default) },
-            enabled = canAct,
-        )
-
-        val local = status.overlayHash
-        val remote = status.remoteOverlayHash
-        val same = local != null && remote != null && local.equals(remote, ignoreCase = true)
-        val overlayValue = buildString {
-            append(
-                stringResource(
-                    if (status.overlayExists) R.string.overlay_present else R.string.overlay_missing
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            // Left: how the write path and the current system state stand.
+            Column(
+                modifier = Modifier.weight(0.45f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                OverviewRow(
+                    label = stringResource(R.string.overview_root),
+                    value = rootValue,
+                    valueColor = if (status.rootAvailable) Ok else Danger,
+                    dotColor = if (status.rootAvailable) Ok else Danger,
                 )
-            )
-            append(" · ")
-            append(
-                stringResource(
-                    if (status.overlayRecognized) {
-                        R.string.overlay_recognized
-                    } else {
-                        R.string.overlay_not_recognized
-                    }
+
+                val provider = status.currentProvider
+                OverviewRow(
+                    label = stringResource(R.string.current_provider),
+                    value = provider?.let { vm.label(it) } ?: stringResource(R.string.unknown),
+                    valueColor = if (provider == null) Muted else TextPrimary,
+                    dotColor = if (provider == null) Muted else Accent,
+                    hint = stringResource(R.string.hint_set_default),
+                    onClick = { vm.openScreen(Screen.Default) },
+                    enabled = canAct,
                 )
-            )
-            if (local != null && remote != null) {
-                append(" · ")
-                append(
-                    stringResource(
-                        if (same) R.string.overlay_up_to_date else R.string.overlay_outdated
+
+                val local = status.overlayHash
+                val remote = status.remoteOverlayHash
+                val same = local != null && remote != null && local.equals(remote, ignoreCase = true)
+                val overlayValue = buildString {
+                    append(
+                        stringResource(
+                            if (status.overlayExists) {
+                                R.string.overlay_present
+                            } else {
+                                R.string.overlay_missing
+                            }
+                        )
                     )
+                    append(" · ")
+                    append(
+                        stringResource(
+                            if (status.overlayRecognized) {
+                                R.string.overlay_recognized
+                            } else {
+                                R.string.overlay_not_recognized
+                            }
+                        )
+                    )
+                    if (local != null && remote != null) {
+                        append(" · ")
+                        append(
+                            stringResource(
+                                if (same) R.string.overlay_up_to_date else R.string.overlay_outdated
+                            )
+                        )
+                    }
+                }
+                val overlayColor = when {
+                    !status.overlayExists -> Danger
+                    !status.overlayRecognized -> Warn
+                    local != null && remote != null && !same -> Warn
+                    else -> Ok
+                }
+                OverviewRow(
+                    label = stringResource(R.string.overview_overlay),
+                    value = overlayValue,
+                    valueColor = overlayColor,
+                    dotColor = overlayColor,
+                    hint = stringResource(R.string.hint_deploy),
+                    onClick = { vm.requestOverlayDeploy() },
+                    enabled = canAct,
+                )
+
+                OverviewRow(
+                    label = stringResource(R.string.device_model),
+                    value = status.model.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.unknown),
+                    valueColor = TextPrimary,
+                    dotColor = Muted,
+                )
+            }
+
+            // Right: one row per installable/selectable WebView.
+            Column(
+                modifier = Modifier.weight(0.55f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Known.TARGETS.forEachIndexed { index, target ->
+                    val info = status.installed[target.packageName]
+                    val asset = status.assets.firstOrNull { it.packageName == target.packageName }
+                    OverviewRow(
+                        label = vm.label(target.packageName),
+                        value = installedValue(info),
+                        valueColor = installedColor(info),
+                        dotColor = installedColor(info),
+                        hint = stringResource(R.string.hint_download),
+                        onClick = {
+                            if (asset != null) {
+                                vm.requestDownload(asset)
+                            } else {
+                                vm.openScreen(Screen.Install)
+                            }
+                        },
+                        enabled = canAct,
+                        modifier = if (index == 0) {
+                            Modifier.focusRequester(firstActionFocus)
+                        } else {
+                            Modifier
+                        },
+                    )
+                }
+
+                val aosp = status.installed[Known.AOSP_PACKAGE]
+                OverviewRow(
+                    label = vm.label(Known.AOSP_PACKAGE),
+                    value = installedValue(aosp),
+                    valueColor = installedColor(aosp),
+                    dotColor = installedColor(aosp),
                 )
             }
         }
-        val overlayColor = when {
-            !status.overlayExists -> Danger
-            !status.overlayRecognized -> Warn
-            local != null && remote != null && !same -> Warn
-            else -> Ok
-        }
-        OverviewRow(
-            label = stringResource(R.string.overview_overlay),
-            value = overlayValue,
-            valueColor = overlayColor,
-            dotColor = overlayColor,
-            hint = stringResource(R.string.hint_deploy),
-            onClick = { vm.requestOverlayDeploy() },
-            enabled = canAct,
-        )
 
-        Known.TARGETS.forEachIndexed { index, target ->
-            val info = status.installed[target.packageName]
-            val asset = status.assets.firstOrNull { it.packageName == target.packageName }
-            OverviewRow(
-                label = vm.label(target.packageName),
-                value = installedValue(info),
-                valueColor = installedColor(info),
-                dotColor = installedColor(info),
-                hint = stringResource(R.string.hint_download),
-                onClick = {
-                    if (asset != null) {
-                        vm.requestDownload(asset)
-                    } else {
-                        vm.openScreen(Screen.Install)
-                    }
-                },
-                enabled = canAct,
-                modifier = if (index == 0) {
-                    Modifier.focusRequester(firstActionFocus)
-                } else {
-                    Modifier
-                },
-            )
-        }
-
-        val aosp = status.installed[Known.AOSP_PACKAGE]
-        OverviewRow(
-            label = vm.label(Known.AOSP_PACKAGE),
-            value = installedValue(aosp),
-            valueColor = installedColor(aosp),
-            dotColor = installedColor(aosp),
-        )
-
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(12.dp))
         OverviewRow(
             label = stringResource(R.string.action_restore),
             value = stringResource(R.string.restore_row_hint),
@@ -423,7 +446,7 @@ private fun OverviewRowContent(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(64.dp)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -455,7 +478,9 @@ private fun OverviewRowContent(
         if (showsChevron) {
             Spacer(Modifier.width(12.dp))
             Box(
-                modifier = Modifier.widthIn(min = 72.dp),
+                // Narrow columns: reserve only enough room for a two-character hint, and let
+                // longer translations borrow space from the value while focused.
+                modifier = Modifier.widthIn(min = 44.dp),
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 if (focused && hint != null) {

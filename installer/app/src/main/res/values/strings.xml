@@ -20,7 +20,7 @@
     <string name="storage_path">下载目录</string>
 
     <string name="device_section">设备</string>
-    <string name="device_model">型号</string>
+    <string name="device_model">设备型号</string>
     <string name="device_name">设备代号</string>
     <string name="device_android">系统版本</string>
     <string name="device_android_value">Android %1$s (API %2$d)</string>
