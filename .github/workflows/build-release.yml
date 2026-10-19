@@ -103,10 +103,10 @@ jobs:
 
           mkdir -p out/work
           echo "==> aapt2 compile"
-          "$BT/aapt2" compile --dir res -o out/work/resources.zip
+          "$BT/aapt2" compile --dir overlay/res -o out/work/resources.zip
           echo "==> aapt2 link"
           "$BT/aapt2" link -o out/work/unsigned.apk -I "$ANDROID_JAR" \
-            --manifest AndroidManifest.xml -R out/work/resources.zip --auto-add-overlay
+            --manifest overlay/AndroidManifest.xml -R out/work/resources.zip --auto-add-overlay
           echo "==> zipalign"
           "$BT/zipalign" -p -f 4 out/work/unsigned.apk out/work/aligned.apk
           echo "==> apksigner sign"
