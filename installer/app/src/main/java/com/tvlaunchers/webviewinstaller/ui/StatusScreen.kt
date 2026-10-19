@@ -423,7 +423,7 @@ private fun OverviewRowContent(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .height(44.dp)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -440,11 +440,8 @@ private fun OverviewRowContent(
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 240.dp),
+            modifier = Modifier.weight(1f),
         )
-        // Keep the value next to its label instead of pushing it to the far right; the trailing
-        // slot still holds the action hint, so the eye only crosses one short gap.
-        Spacer(Modifier.width(14.dp))
         Text(
             text = value,
             color = valueColor,
@@ -452,8 +449,8 @@ private fun OverviewRowContent(
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Start,
-            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1.3f),
         )
         if (showsChevron) {
             Spacer(Modifier.width(12.dp))

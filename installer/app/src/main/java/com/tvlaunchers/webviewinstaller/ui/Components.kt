@@ -66,7 +66,7 @@ fun Section(
                 color = if (focused) Accent else CardBorder,
                 shape = shape,
             )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
         if (title.isNotEmpty()) {

@@ -34,9 +34,9 @@ val SectionSpacing = 6.dp
 
 val TitleSize = 30.sp
 val SectionTitleSize = 18.sp
-val BodySize = 17.sp
-val LabelSize = 15.sp
-val SmallSize = 12.sp
+val BodySize = 19.sp
+val LabelSize = 16.sp
+val SmallSize = 13.sp
 
 val InstallerColorScheme = darkColorScheme(
     primary = Accent,
