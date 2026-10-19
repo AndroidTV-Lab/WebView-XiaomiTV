@@ -24,14 +24,22 @@ object RootTasks {
 
     fun overlay(apkPath: String): String = """
         echo "START overlay"
-        run mount -o rw,remount /vendor || fail "remount /vendor rw failed"
-        run mkdir -p /vendor/overlay || fail "mkdir /vendor/overlay failed"
+        # /product/overlay is the standard RRO location on Android 9; /product is mounted ro.
+        run mount -o rw,remount /product || fail "remount /product rw failed"
+        run mkdir -p ${Known.OVERLAY_DIR} || fail "mkdir ${Known.OVERLAY_DIR} failed"
         run cp '$apkPath' ${Known.OVERLAY_PATH} || fail "copy overlay failed"
         run chmod 644 ${Known.OVERLAY_PATH}
         run chown root:root ${Known.OVERLAY_PATH}
         command -v restorecon >/dev/null 2>&1 && run restorecon ${Known.OVERLAY_PATH}
         run sync
-        run mount -o ro,remount /vendor
+        run mount -o ro,remount /product
+        echo "OK" > "${'$'}EXIT"
+    """.trimIndent()
+
+    /** The app cannot write public storage, so the published copy is removed as root. */
+    fun removeDownload(publicName: String): String = """
+        echo "START remove download $publicName"
+        run rm -f '/sdcard/Download/$publicName' || fail "remove /sdcard/Download/$publicName failed"
         echo "OK" > "${'$'}EXIT"
     """.trimIndent()
 
@@ -57,12 +65,12 @@ object RootTasks {
         for P in com.thorium.webview org.axpos.aosmium_wv com.google.android.webview; do
           run pm uninstall --user 0 "${'$'}P"
         done
-        run mount -o rw,remount /vendor || fail "remount /vendor rw failed"
+        run mount -o rw,remount /product || fail "remount /product rw failed"
         if [ -e ${Known.OVERLAY_PATH} ]; then
           run rm -f ${Known.OVERLAY_PATH} || fail "remove overlay failed"
         fi
         run sync
-        run mount -o ro,remount /vendor
+        run mount -o ro,remount /product
         echo "OK" > "${'$'}EXIT"
     """.trimIndent()
 

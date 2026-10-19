@@ -42,14 +42,16 @@ import androidx.tv.material3.Text
 import com.tvlaunchers.webviewinstaller.DialogState
 import com.tvlaunchers.webviewinstaller.InstallerViewModel
 import com.tvlaunchers.webviewinstaller.R
+import com.tvlaunchers.webviewinstaller.UiState
 import kotlinx.coroutines.delay
 
 @Composable
-fun DialogHost(vm: InstallerViewModel, dialog: DialogState) {
+fun DialogHost(vm: InstallerViewModel, state: UiState, dialog: DialogState) {
     Dialog(
         onDismissRequest = {
             when (dialog) {
                 is DialogState.NonMulan -> vm.exitApp()
+                is DialogState.DeleteDownload -> vm.keepDownloadedApk()
                 else -> vm.dismissDialog()
             }
         },
@@ -70,10 +72,12 @@ fun DialogHost(vm: InstallerViewModel, dialog: DialogState) {
                     is DialogState.NonMulan -> NonMulanDialog(vm, dialog)
                     is DialogState.Error -> ErrorDialog(vm, dialog)
                     is DialogState.ConfirmDownload -> ConfirmDownloadDialog(vm, dialog)
+                    is DialogState.Manage -> ManageDialog(vm, state, dialog)
                     is DialogState.ConfirmOverlay -> ConfirmOverlayDialog(vm)
                     is DialogState.ConfirmRestore -> ConfirmRestoreDialog(vm)
                     is DialogState.ConfirmUninstall -> ConfirmUninstallDialog(vm, dialog)
                     is DialogState.Reboot -> RebootDialog(vm, dialog)
+                    is DialogState.DeleteDownload -> DeleteDownloadDialog(vm, dialog)
                     is DialogState.SetDefaultAfterInstall -> SetDefaultAfterInstallDialog(vm, dialog)
                     is DialogState.OverlayRequired -> OverlayRequiredDialog(vm, dialog)
                 }
@@ -117,6 +121,73 @@ private fun ConfirmDownloadDialog(vm: InstallerViewModel, dialog: DialogState.Co
             onConfirm = { vm.confirmDownload(asset) },
             focusConfirm = true,
         )
+    }
+}
+
+@Composable
+private fun ManageDialog(
+    vm: InstallerViewModel,
+    state: UiState,
+    dialog: DialogState.Manage,
+) {
+    val installed = state.status?.installed?.get(dialog.packageName)
+    val asset = state.status?.assets?.firstOrNull { it.packageName == dialog.packageName }
+    val hasUpdate = installed != null && asset?.versionName != null &&
+        asset.versionName != installed.versionName
+    val hasAsset = asset != null
+    val primaryFocus = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        delay(150)
+        runCatching { primaryFocus.requestFocus() }
+    }
+
+    Column {
+        DialogTitle(vm.label(dialog.packageName))
+        DialogBody(
+            stringResource(
+                R.string.manage_message,
+                installed?.versionName ?: stringResource(R.string.not_installed),
+                asset?.versionName ?: stringResource(R.string.install_asset_missing),
+            )
+        )
+        Spacer(Modifier.height(22.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Button(onClick = { vm.dismissDialog() }, colors = secondaryButtonColors()) {
+                Text(stringResource(R.string.action_cancel))
+            }
+            Spacer(Modifier.width(12.dp))
+            Button(
+                onClick = { vm.requestUninstall(dialog.packageName) },
+                colors = dangerButtonColors(),
+                modifier = if (!hasAsset) Modifier.focusRequester(primaryFocus) else Modifier,
+            ) {
+                Text(stringResource(R.string.action_uninstall))
+            }
+            if (hasAsset) {
+                Spacer(Modifier.width(12.dp))
+                Button(
+                    onClick = { asset?.let { vm.confirmDownload(it) } },
+                    colors = if (hasUpdate) secondaryButtonColors() else primaryButtonColors(),
+                    modifier = if (hasUpdate) Modifier else Modifier.focusRequester(primaryFocus),
+                ) {
+                    Text(stringResource(R.string.install_button_reinstall))
+                }
+                if (hasUpdate) {
+                    Spacer(Modifier.width(12.dp))
+                    Button(
+                        onClick = { asset?.let { vm.confirmDownload(it) } },
+                        colors = primaryButtonColors(),
+                        modifier = Modifier.focusRequester(primaryFocus),
+                    ) {
+                        Text(stringResource(R.string.install_button_update))
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -187,6 +258,28 @@ private fun RebootDialog(vm: InstallerViewModel, dialog: DialogState.Reboot) {
             onCancel = { vm.dismissDialog() },
             onConfirm = { vm.rebootNow() },
             focusConfirm = false,
+        )
+    }
+}
+
+@Composable
+private fun DeleteDownloadDialog(vm: InstallerViewModel, dialog: DialogState.DeleteDownload) {
+    Column {
+        DialogTitle(stringResource(R.string.delete_download_title))
+        DialogBody(
+            stringResource(
+                R.string.delete_download_message,
+                vm.label(dialog.packageName),
+                dialog.publicName,
+            )
+        )
+        DialogButtons(
+            cancelText = stringResource(R.string.delete_download_no),
+            confirmText = stringResource(R.string.delete_download_yes),
+            onCancel = { vm.keepDownloadedApk() },
+            onConfirm = { vm.deleteDownloadedApk() },
+            focusConfirm = false,
+            confirmColors = dangerButtonColors(),
         )
     }
 }

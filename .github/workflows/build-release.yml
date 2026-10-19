@@ -140,6 +140,15 @@ jobs:
           grep -q 'com.google.android.webview' providers.txt
           grep -q 'isFallback' providers.txt
 
+      - name: Bundle overlay into installer
+        run: |
+          set -euo pipefail
+          # The installer deploys its own copy; the release APK is only an archive. The bundled
+          # asset is therefore the freshly signed one from this run, not a stale file in the repo.
+          mkdir -p installer/app/src/main/assets
+          cp out/WebViewOverlay.apk installer/app/src/main/assets/WebViewOverlay.apk
+          sha256sum installer/app/src/main/assets/WebViewOverlay.apk
+
       - name: Build installer
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/keystore/thorium-overlay.jks
@@ -164,6 +173,8 @@ jobs:
           echo "package: $PKG"
           test "$PKG" = "com.tvlaunchers.webviewinstaller"
           "$BT/apksigner" verify --print-certs out/WebViewInstaller.apk
+          # The overlay must actually be embedded: that copy is what gets deployed.
+          unzip -l out/WebViewInstaller.apk | grep -q 'assets/WebViewOverlay.apk'
           cd out
           sha256sum WebViewInstaller.apk > WebViewInstaller.apk.sha256
           cat WebViewInstaller.apk.sha256
@@ -187,9 +198,9 @@ jobs:
           body: |
             Dated build `${{ steps.version.outputs.name }}` (versionCode `${{ steps.version.outputs.code }}`, run `${{ github.run_number }}`).
 
-            The on-device installer downloads from the repository's latest release.
+            The installer carries the overlay inside its APK and deploys that bundled copy.
 
-            - `WebViewOverlay.apk` — static RRO for `config_webview_packages`
+            - `WebViewOverlay.apk` — static RRO for `config_webview_packages` (archive copy)
             - `WebViewInstaller.apk` — TV installer (package `com.tvlaunchers.webviewinstaller`)
             - `.sha256` files — verify with `sha256sum -c` or the installer itself
           files: |

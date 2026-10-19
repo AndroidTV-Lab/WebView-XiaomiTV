@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -90,15 +91,15 @@ object Http {
         throw IOException(last?.message ?: "all sources failed", last)
     }
 
-    fun sha256(file: File): String {
+    fun sha256(file: File): String = file.inputStream().use { sha256(it) }
+
+    fun sha256(input: InputStream): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { input ->
-            val buf = ByteArray(128 * 1024)
-            while (true) {
-                val n = input.read(buf)
-                if (n < 0) break
-                digest.update(buf, 0, n)
-            }
+        val buf = ByteArray(128 * 1024)
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) break
+            digest.update(buf, 0, n)
         }
         return digest.digest().toHex()
     }

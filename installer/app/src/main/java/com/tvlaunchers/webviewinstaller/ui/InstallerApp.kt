@@ -53,7 +53,6 @@ fun InstallerApp(vm: InstallerViewModel, onExit: () -> Unit) {
     ) {
         when (state.screen) {
             Screen.Status -> StatusScreen(vm, state)
-            Screen.Install -> InstallScreen(vm, state)
             Screen.Default -> DefaultScreen(vm, state)
         }
 
@@ -67,7 +66,7 @@ fun InstallerApp(vm: InstallerViewModel, onExit: () -> Unit) {
         }
 
         state.dialog?.let { dialog ->
-            DialogHost(vm, dialog)
+            DialogHost(vm, state, dialog)
         }
     }
 }

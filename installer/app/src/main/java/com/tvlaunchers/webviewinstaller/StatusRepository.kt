@@ -5,8 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -71,35 +69,22 @@ class StatusRepository(private val context: Context) {
             null
         }
 
-        var remoteOverlayHash: String? = null
-        var remoteOverlayError: String? = null
+        // The overlay travels inside the installer, so "the version to deploy" is this build's
+        // bundled asset, not a remote file: compare the deployed copy against it.
+        val bundledOverlayHash = BundledOverlay.hash(context)
         var assets: List<WebViewAsset> = emptyList()
         var manifestError: String? = null
 
         if (fetchRemote) {
-            coroutineScope {
-                val hashJob = async {
-                    runCatching {
-                        Http.fetchText(Releases.candidates(Releases.OVERLAY_SHA_URL), 6000)
-                    }
-                }
-                val manifestJob = async {
-                    runCatching {
-                        Http.fetchText(Releases.candidates(Releases.MANIFEST_URL), 6000)
-                    }
-                }
-                val hashResult = hashJob.await()
-                remoteOverlayHash = hashResult.getOrNull()?.let { Http.parseSha256(it.text) }
-                remoteOverlayError = hashResult.exceptionOrNull()?.message
-
-                val manifestResult = manifestJob.await()
-                if (manifestResult.isSuccess) {
-                    runCatching { Releases.parseManifest(manifestResult.getOrThrow().text) }
-                        .onSuccess { assets = it }
-                        .onFailure { manifestError = it.message ?: "manifest parse error" }
-                } else {
-                    manifestError = manifestResult.exceptionOrNull()?.message ?: "manifest fetch failed"
-                }
+            val manifestResult = runCatching {
+                Http.fetchText(Releases.candidates(Releases.MANIFEST_URL), 6000)
+            }
+            if (manifestResult.isSuccess) {
+                runCatching { Releases.parseManifest(manifestResult.getOrThrow().text) }
+                    .onSuccess { assets = it }
+                    .onFailure { manifestError = it.message ?: "manifest parse error" }
+            } else {
+                manifestError = manifestResult.exceptionOrNull()?.message ?: "manifest fetch failed"
             }
         } else {
             assets = emptyList()
@@ -132,8 +117,7 @@ class StatusRepository(private val context: Context) {
             overlayExists = overlayExists,
             overlayRecognized = overlayRecognized,
             overlayHash = overlayHash,
-            remoteOverlayHash = remoteOverlayHash,
-            remoteOverlayError = remoteOverlayError,
+            bundledOverlayHash = bundledOverlayHash,
             pendingOverlayReboot = pendingOverlay,
             pendingProvider = pendingProvider,
             installed = installed,

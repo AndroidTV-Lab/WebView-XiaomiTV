@@ -183,7 +183,7 @@ private fun OverviewCard(
         ) {
             // Left: how the write path and the current system state stand.
             Column(
-                modifier = Modifier.weight(0.45f),
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 OverviewRow(
@@ -205,20 +205,17 @@ private fun OverviewCard(
                 )
 
                 val local = status.overlayHash
-                val remote = status.remoteOverlayHash
-                val same = local != null && remote != null && local.equals(remote, ignoreCase = true)
-                val overlayValue = buildString {
-                    append(
-                        stringResource(
-                            if (status.overlayExists) {
-                                R.string.overlay_present
-                            } else {
-                                R.string.overlay_missing
-                            }
-                        )
-                    )
-                    append(" · ")
-                    append(
+                val remote = status.bundledOverlayHash
+                val needsUpdate =
+                    local != null && remote != null && !local.equals(remote, ignoreCase = true)
+                // Two segments at most: "deployed · update available" replaces the recognition
+                // state, which would otherwise make the row too wide for its column.
+                val overlayValue = when {
+                    !status.overlayExists -> stringResource(R.string.overlay_missing) + " · " +
+                        stringResource(R.string.overlay_not_recognized)
+                    needsUpdate -> stringResource(R.string.overlay_present) + " · " +
+                        stringResource(R.string.overlay_outdated)
+                    else -> stringResource(R.string.overlay_present) + " · " +
                         stringResource(
                             if (status.overlayRecognized) {
                                 R.string.overlay_recognized
@@ -226,20 +223,11 @@ private fun OverviewCard(
                                 R.string.overlay_not_recognized
                             }
                         )
-                    )
-                    if (local != null && remote != null) {
-                        append(" · ")
-                        append(
-                            stringResource(
-                                if (same) R.string.overlay_up_to_date else R.string.overlay_outdated
-                            )
-                        )
-                    }
                 }
                 val overlayColor = when {
                     !status.overlayExists -> Danger
                     !status.overlayRecognized -> Warn
-                    local != null && remote != null && !same -> Warn
+                    needsUpdate -> Warn
                     else -> Ok
                 }
                 OverviewRow(
@@ -254,8 +242,17 @@ private fun OverviewCard(
 
                 OverviewRow(
                     label = stringResource(R.string.device_model),
-                    value = status.model.takeIf { it.isNotBlank() }
-                        ?: stringResource(R.string.unknown),
+                    value = buildString {
+                        append(
+                            status.model.takeIf { it.isNotBlank() }
+                                ?: stringResource(R.string.unknown)
+                        )
+                        if (status.device.isNotBlank()) {
+                            append('(')
+                            append(status.device)
+                            append(')')
+                        }
+                    },
                     valueColor = TextPrimary,
                     dotColor = Muted,
                 )
@@ -263,7 +260,7 @@ private fun OverviewCard(
 
             // Right: one row per installable/selectable WebView.
             Column(
-                modifier = Modifier.weight(0.55f),
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Known.TARGETS.forEachIndexed { index, target ->
@@ -272,19 +269,18 @@ private fun OverviewCard(
                     OverviewRow(
                         label = vm.label(target.packageName),
                         value = installedValue(info),
+                        note = installedNote(info),
                         valueColor = installedColor(info),
                         dotColor = installedColor(info),
-                        // An installed WebView opens its detail card so it can be updated,
-                        // reinstalled or uninstalled; a missing one starts the download.
+                        // An installed WebView opens its action dialog (update / reinstall /
+                        // uninstall); a missing one starts its download.
                         hint = stringResource(
                             if (info != null) R.string.hint_manage else R.string.hint_download
                         ),
-                        onClick = {
-                            if (info != null || asset == null) {
-                                vm.openScreen(Screen.Install)
-                            } else {
-                                vm.requestDownload(asset)
-                            }
+                        onClick = when {
+                            info != null -> ({ vm.openManage(target.packageName) })
+                            asset != null -> ({ asset?.let { vm.requestDownload(it) } })
+                            else -> null
                         },
                         enabled = canAct,
                         modifier = if (index == 0) {
@@ -299,6 +295,7 @@ private fun OverviewCard(
                 OverviewRow(
                     label = vm.label(Known.AOSP_PACKAGE),
                     value = installedValue(aosp),
+                    note = installedNote(aosp),
                     valueColor = installedColor(aosp),
                     dotColor = installedColor(aosp),
                 )
@@ -321,6 +318,11 @@ private fun OverviewCard(
             Note(stringResource(R.string.read_only_banner), Warn)
             Note(status.rootError, Danger)
         }
+        // The manifest used to be reported on the (removed) install screen; keep the failure
+        // visible here, otherwise the download rows just look empty.
+        status.manifestError?.let {
+            Note(stringResource(R.string.install_manifest_error, it), Danger)
+        }
         status.pendingProvider?.let {
             Note(stringResource(R.string.pending_reboot) + " · $it", Warn)
         }
@@ -333,12 +335,13 @@ private fun OverviewCard(
 @Composable
 private fun installedValue(info: InstalledPackage?): String = when {
     info == null -> stringResource(R.string.not_installed)
-    !info.enabled -> listOfNotNull(
-        info.versionName,
-        stringResource(R.string.installed_disabled),
-    ).joinToString(" · ")
     else -> info.versionName ?: stringResource(R.string.yes)
 }
+
+/** Shown under the version: a disabled package needs the extra room of a second line. */
+@Composable
+private fun installedNote(info: InstalledPackage?): String? =
+    if (info != null && !info.enabled) stringResource(R.string.installed_disabled) else null
 
 private fun installedColor(info: InstalledPackage?): Color = when {
     info == null -> Muted
@@ -358,6 +361,7 @@ private fun OverviewRow(
     valueColor: Color,
     dotColor: Color,
     modifier: Modifier = Modifier,
+    note: String? = null,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     danger: Boolean = false,
@@ -376,6 +380,7 @@ private fun OverviewRow(
             OverviewRowContent(
                 label = label,
                 value = value,
+                note = note,
                 valueColor = valueColor,
                 dotColor = dotColor,
                 danger = danger,
@@ -422,6 +427,7 @@ private fun OverviewRow(
         OverviewRowContent(
             label = label,
             value = value,
+            note = note,
             valueColor = valueColor,
             dotColor = dotColor,
             danger = danger,
@@ -438,6 +444,7 @@ private fun OverviewRow(
 private fun OverviewRowContent(
     label: String,
     value: String,
+    note: String?,
     valueColor: Color,
     dotColor: Color,
     danger: Boolean,
@@ -467,18 +474,39 @@ private fun OverviewRowContent(
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            // Take the label's own width instead of a fixed share, so a long label such as
+            // "Webview Overlay" is never cut off and the value uses whatever is left.
+            modifier = Modifier,
         )
-        Text(
-            text = value,
-            color = valueColor,
-            fontSize = BodySize,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1.3f),
-        )
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 12.dp),
+        ) {
+            Text(
+                text = value,
+                color = valueColor,
+                fontSize = BodySize,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (note != null) {
+                Text(
+                    text = note,
+                    color = Warn,
+                    fontSize = LabelSize,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
         if (showsChevron) {
             Spacer(Modifier.width(12.dp))
             Box(

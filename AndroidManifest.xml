@@ -17,7 +17,8 @@
         android:isStatic / android:priority 从 API 28 (Android 9) 开始支持。
 
         priority=2：
-          - 小米 TV 上已有 /vendor/overlay/WebViewOverlay.apk
+          - 小米 TV 的 /product/overlay 或 /vendor/overlay 中已有旧版
+            WebViewOverlay.apk
             (com.afk.webviewoverlay, priority=1)，本 overlay 优先级更高；
           - Amlogic A12 上 GoogleWebViewOverlay.apk 的 priority=0，同样被覆盖。
     -->

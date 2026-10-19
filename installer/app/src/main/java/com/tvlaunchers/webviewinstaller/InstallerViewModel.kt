@@ -23,6 +23,7 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
     private var activeAsset: WebViewAsset? = null
     private var lastFailedAsset: WebViewAsset? = null
     private var handledDownloadPath: String? = null
+    private var afterDelete: DialogState? = null
     private var toastSequence = 0
 
     init {
@@ -140,12 +141,13 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun continueOnNonMulan() {
-        if (!File("/vendor/overlay").isDirectory) {
+        // /product/overlay may not exist yet (the deploy creates it), so probe the partition.
+        if (!File("/product").isDirectory) {
             _ui.update {
                 it.copy(
                     dialog = DialogState.Error(
-                        getString(R.string.vendor_missing_title),
-                        getString(R.string.vendor_missing_message),
+                        getString(R.string.overlay_dir_missing_title),
+                        getString(R.string.overlay_dir_missing_message),
                         null,
                     )
                 )
@@ -161,6 +163,12 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
         _ui.update { it.copy(selectedProvider = packageName) }
     }
 
+    /** An installed WebView opens this dialog instead of a separate detail screen. */
+    fun openManage(packageName: String) {
+        if (Known.targetFor(packageName) == null) return
+        _ui.update { it.copy(dialog = DialogState.Manage(packageName)) }
+    }
+
     fun requestDownload(asset: WebViewAsset) {
         if (_ui.value.download.active) return
         if (!requireRoot()) return
@@ -169,6 +177,7 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun confirmDownload(asset: WebViewAsset) {
         val context = getApplication<Application>()
+        if (_ui.value.download.active) return
         if (!requireRoot()) return
         activeAsset = asset
         lastFailedAsset = asset
@@ -205,18 +214,12 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
             _ui.update { it.copy(busyLabel = getString(R.string.overlay_running)) }
             try {
                 val context = getApplication<Application>()
-                val dest = File(RootPaths.downloadDir(context), "WebViewOverlay.apk")
-                val expected = _ui.value.status?.remoteOverlayHash
-                    ?: Http.fetchText(
-                        Releases.candidates(Releases.OVERLAY_SHA_URL),
-                        8000,
-                    ).text.let { Http.parseSha256(it) }
-                if (expected == null) throw IOException("overlay sha256 is unavailable")
-                Http.downloadSmall(
-                    Releases.candidates(Releases.OVERLAY_URL),
-                    dest,
-                    expected,
-                )
+                // The overlay is bundled with the installer; the release file is an archive only.
+                val dest = try {
+                    BundledOverlay.extract(context)
+                } catch (e: IOException) {
+                    throw IOException(getString(R.string.overlay_bundled_missing), e)
+                }
                 val info = context.packageManager.getPackageArchiveInfo(dest.absolutePath, 0)
                 if (info?.packageName != Known.OVERLAY_PACKAGE) {
                     throw IOException(
@@ -399,14 +402,15 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
     private fun start() {
         if (started) return
         started = true
-        if (!File("/vendor/overlay").isDirectory) {
+        // /product/overlay may not exist yet (the deploy creates it), so probe the partition.
+        if (!File("/product").isDirectory) {
             _ui.update {
                 it.copy(
                     loading = false,
                     rootChecking = false,
                     dialog = DialogState.Error(
-                        getString(R.string.vendor_missing_title),
-                        getString(R.string.vendor_missing_message),
+                        getString(R.string.overlay_dir_missing_title),
+                        getString(R.string.overlay_dir_missing_message),
                         null,
                     ),
                 )
@@ -438,12 +442,13 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
             _ui.update {
                 it.copy(busyLabel = getString(R.string.install_running, label(asset.packageName)))
             }
+            val publicName = publicFileName(asset)
             val result = RootShell.run(
                 workDir = RootPaths.workDir(getApplication()),
                 scriptBody = RootTasks.install(
                     path,
                     asset.packageName,
-                    publicFileName(asset),
+                    publicName,
                 ),
                 timeoutMs = 300_000,
             )
@@ -459,16 +464,56 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
             toast(getString(R.string.install_success, label(asset.packageName)))
             refresh(remote = false)
             val overlayReady = _ui.value.status?.overlayRecognized == true
+            // Ask about the downloaded files first; the default-WebView prompt follows either way.
+            afterDelete = if (overlayReady) {
+                DialogState.SetDefaultAfterInstall(asset.packageName)
+            } else {
+                DialogState.OverlayRequired(asset.packageName)
+            }
             _ui.update {
                 it.copy(
-                    dialog = if (overlayReady) {
-                        DialogState.SetDefaultAfterInstall(asset.packageName)
-                    } else {
-                        DialogState.OverlayRequired(asset.packageName)
-                    },
+                    dialog = DialogState.DeleteDownload(
+                        packageName = asset.packageName,
+                        publicName = publicName,
+                        privatePath = path,
+                    ),
                 )
             }
         }
+    }
+
+    /** Back/dismiss keeps both copies and moves on to the pending prompt. */
+    fun keepDownloadedApk() {
+        showAfterDelete()
+    }
+
+    fun deleteDownloadedApk() {
+        val dialog = _ui.value.dialog as? DialogState.DeleteDownload ?: return
+        _ui.update { it.copy(dialog = null) }
+        viewModelScope.launch {
+            _ui.update { it.copy(busyLabel = getString(R.string.delete_download_running)) }
+            // The app cannot write /sdcard/Download, so the published copy is removed as root.
+            val result = RootShell.run(
+                workDir = RootPaths.workDir(getApplication()),
+                scriptBody = RootTasks.removeDownload(dialog.publicName),
+                timeoutMs = 60_000,
+            )
+            File(dialog.privatePath).delete()
+            File(dialog.privatePath + ".part").delete()
+            _ui.update { it.copy(busyLabel = null) }
+            if (result.ok) {
+                toast(getString(R.string.delete_download_done))
+            } else {
+                toast(getString(R.string.delete_download_failed, result.message ?: ""))
+            }
+            showAfterDelete()
+        }
+    }
+
+    private fun showAfterDelete() {
+        val next = afterDelete
+        afterDelete = null
+        _ui.update { it.copy(dialog = next) }
     }
 
     private fun requireRoot(): Boolean {

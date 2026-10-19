@@ -7,14 +7,10 @@ object Releases {
     const val REPO = "TVLaunchers/WebView-XiaomiTV"
     private const val BASE = "https://github.com/$REPO/releases"
 
-    // CI tags releases with the build date and marks them as GitHub's latest, so the installer
-    // must follow "latest" rather than a fixed tag.
-    private const val LATEST = "$BASE/latest/download"
+    // WebView APKs live in a fixed assets release; the dated releases only archive builds.
     private const val ASSETS_TAG = "webview-assets"
     private const val ASSETS = "$BASE/download/$ASSETS_TAG"
 
-    const val OVERLAY_URL = "$LATEST/WebViewOverlay.apk"
-    const val OVERLAY_SHA_URL = "$LATEST/WebViewOverlay.apk.sha256"
     const val MANIFEST_URL = "$ASSETS/manifest.json"
 
     /** Mirrors are prepended to the GitHub URL; the first working source wins. */

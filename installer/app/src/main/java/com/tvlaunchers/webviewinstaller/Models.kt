@@ -2,16 +2,22 @@ package com.tvlaunchers.webviewinstaller
 
 import androidx.annotation.StringRes
 
-enum class Screen { Status, Install, Default }
+enum class Screen { Status, Default }
 
 sealed interface DialogState {
     data class NonMulan(val device: String) : DialogState
     data class Error(val title: String, val message: String, val log: String?) : DialogState
     data class ConfirmDownload(val asset: WebViewAsset) : DialogState
+    data class Manage(val packageName: String) : DialogState
     data object ConfirmOverlay : DialogState
     data object ConfirmRestore : DialogState
     data class ConfirmUninstall(val packageName: String) : DialogState
     data class Reboot(val message: String) : DialogState
+    data class DeleteDownload(
+        val packageName: String,
+        val publicName: String,
+        val privatePath: String,
+    ) : DialogState
     data class SetDefaultAfterInstall(val packageName: String) : DialogState
     data class OverlayRequired(val packageName: String) : DialogState
 }
@@ -20,7 +26,9 @@ data class KnownTarget(val id: String, val packageName: String, @StringRes val n
 
 object Known {
     const val OVERLAY_PACKAGE = "com.android.webviewoverlay"
-    const val OVERLAY_PATH = "/vendor/overlay/WebViewOverlay.apk"
+    /** Android 9's standard location for preinstalled RROs. */
+    const val OVERLAY_DIR = "/product/overlay"
+    const val OVERLAY_PATH = "$OVERLAY_DIR/WebViewOverlay.apk"
     const val AOSP_PACKAGE = "com.android.webview"
 
     val TARGETS = listOf(
@@ -70,8 +78,7 @@ data class DeviceStatus(
     val overlayExists: Boolean,
     val overlayRecognized: Boolean,
     val overlayHash: String?,
-    val remoteOverlayHash: String?,
-    val remoteOverlayError: String?,
+    val bundledOverlayHash: String?,
     val pendingOverlayReboot: Boolean,
     val pendingProvider: String?,
     val installed: Map<String, InstalledPackage>,
