@@ -1,14 +1,19 @@
 package com.tvlaunchers.webviewinstaller.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,13 +27,17 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Border
 import androidx.tv.material3.Button
-import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import com.tvlaunchers.webviewinstaller.BuildConfig
 import com.tvlaunchers.webviewinstaller.DeviceStatus
+import com.tvlaunchers.webviewinstaller.InstalledPackage
 import com.tvlaunchers.webviewinstaller.InstallerViewModel
 import com.tvlaunchers.webviewinstaller.Known
 import com.tvlaunchers.webviewinstaller.R
@@ -39,10 +48,10 @@ import kotlinx.coroutines.delay
 @Composable
 fun StatusScreen(vm: InstallerViewModel, state: UiState) {
     val status = state.status
-    val canWrite = status?.rootAvailable == true && state.busyLabel == null
+    val canAct = status?.rootAvailable == true && state.busyLabel == null
 
     val refreshFocus = remember { FocusRequester() }
-    val installFocus = remember { FocusRequester() }
+    val firstActionFocus = remember { FocusRequester() }
     var focusRequested by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.loading, state.refreshing, status?.rootAvailable) {
@@ -50,8 +59,8 @@ fun StatusScreen(vm: InstallerViewModel, state: UiState) {
             focusRequested = true
             delay(200)
             runCatching {
-                if (status?.rootAvailable == true) {
-                    installFocus.requestFocus()
+                if (canAct) {
+                    firstActionFocus.requestFocus()
                 } else {
                     refreshFocus.requestFocus()
                 }
@@ -87,10 +96,11 @@ fun StatusScreen(vm: InstallerViewModel, state: UiState) {
             )
         }
 
-        // Root, default provider, overlay, every installed provider and the actions share one
-        // card, so nothing important sits below the fold on a 540 dp tall TV screen.
+        // One item per row, and every actionable row *is* the action: the default row opens the
+        // default-provider screen, the overlay row redeploys, a WebView row starts its download,
+        // and the restore row runs the full restore.
         item {
-            OverviewCard(vm, state, status, canWrite, installFocus)
+            OverviewCard(vm, state, status, canAct, firstActionFocus)
         }
 
         val busyLabel = state.busyLabel
@@ -133,8 +143,8 @@ private fun OverviewCard(
     vm: InstallerViewModel,
     state: UiState,
     status: DeviceStatus?,
-    canWrite: Boolean,
-    installFocus: FocusRequester,
+    canAct: Boolean,
+    firstActionFocus: FocusRequester,
 ) {
     Section(title = "") {
         if (status == null) {
@@ -147,257 +157,258 @@ private fun OverviewCard(
                 color = Muted,
                 fontSize = BodySize,
             )
+            return@Section
+        }
+
+        val rootValue = if (status.rootAvailable) {
+            stringResource(R.string.root_available) + " · " +
+                stringResource(R.string.root_uid, status.rootUid ?: "?")
         } else {
-            OverviewContent(vm, status, canWrite, installFocus)
+            stringResource(R.string.root_unavailable)
         }
-    }
-}
-
-@Composable
-private fun OverviewContent(
-    vm: InstallerViewModel,
-    status: DeviceStatus,
-    canWrite: Boolean,
-    installFocus: FocusRequester,
-) {
-    val rootValue = if (status.rootAvailable) {
-        stringResource(R.string.root_available) + " · " +
-            stringResource(R.string.root_uid, status.rootUid ?: "?")
-    } else {
-        stringResource(R.string.root_unavailable)
-    }
-    val rootColor = if (status.rootAvailable) Ok else Danger
-
-    val provider = status.currentProvider
-    val providerValue = provider?.let {
-        buildString {
-            append(vm.label(it))
-            status.currentVersion?.takeIf { v -> v.isNotBlank() }?.let { v ->
-                append(" · ").append(v)
-            }
-        }
-    } ?: stringResource(R.string.unknown)
-    val providerColor = if (provider == null) Muted else Color.White
-
-    val local = status.overlayHash
-    val remote = status.remoteOverlayHash
-    val same = local != null && remote != null && local.equals(remote, ignoreCase = true)
-    val overlayValue = buildString {
-        append(
-            stringResource(
-                if (status.overlayExists) R.string.overlay_present else R.string.overlay_missing
-            )
+        OverviewRow(
+            label = stringResource(R.string.overview_root),
+            value = rootValue,
+            valueColor = if (status.rootAvailable) Ok else Danger,
         )
-        append(" · ")
-        append(
-            stringResource(
-                if (status.overlayRecognized) {
-                    R.string.overlay_recognized
-                } else {
-                    R.string.overlay_not_recognized
+
+        val provider = status.currentProvider
+        val providerValue = provider?.let {
+            buildString {
+                append(vm.label(it))
+                status.currentVersion?.takeIf { v -> v.isNotBlank() }?.let { v ->
+                    append(" · ").append(v)
                 }
-            )
+            }
+        } ?: stringResource(R.string.unknown)
+        OverviewRow(
+            label = stringResource(R.string.current_provider),
+            value = providerValue,
+            valueColor = if (provider == null) Muted else Color.White,
+            onClick = { vm.openScreen(Screen.Default) },
+            enabled = canAct,
         )
-        if (local != null && remote != null) {
+
+        val local = status.overlayHash
+        val remote = status.remoteOverlayHash
+        val same = local != null && remote != null && local.equals(remote, ignoreCase = true)
+        val overlayValue = buildString {
+            append(
+                stringResource(
+                    if (status.overlayExists) R.string.overlay_present else R.string.overlay_missing
+                )
+            )
             append(" · ")
             append(
                 stringResource(
-                    if (same) R.string.overlay_up_to_date else R.string.overlay_outdated
+                    if (status.overlayRecognized) {
+                        R.string.overlay_recognized
+                    } else {
+                        R.string.overlay_not_recognized
+                    }
                 )
             )
+            if (local != null && remote != null) {
+                append(" · ")
+                append(
+                    stringResource(
+                        if (same) R.string.overlay_up_to_date else R.string.overlay_outdated
+                    )
+                )
+            }
         }
-    }
-    val overlayColor = when {
-        !status.overlayExists -> Danger
-        !status.overlayRecognized -> Warn
-        local != null && remote != null && !same -> Warn
-        else -> Ok
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        OverviewItem(
-            label = stringResource(R.string.overview_root),
-            value = rootValue,
-            valueColor = rootColor,
-            modifier = Modifier.weight(0.9f),
-        )
-        OverviewActionItem(
-            label = stringResource(R.string.current_provider),
-            value = providerValue,
-            valueColor = providerColor,
-            actionLabel = stringResource(R.string.action_set_default),
-            onAction = { vm.openScreen(Screen.Default) },
-            enabled = canWrite,
-            modifier = Modifier.weight(1.3f),
-        )
-        OverviewActionItem(
+        val overlayColor = when {
+            !status.overlayExists -> Danger
+            !status.overlayRecognized -> Warn
+            local != null && remote != null && !same -> Warn
+            else -> Ok
+        }
+        OverviewRow(
             label = stringResource(R.string.overview_overlay),
             value = overlayValue,
             valueColor = overlayColor,
-            actionLabel = stringResource(R.string.action_deploy_overlay),
-            onAction = { vm.requestOverlayDeploy() },
-            enabled = canWrite,
-            modifier = Modifier.weight(1.3f),
+            onClick = { vm.requestOverlayDeploy() },
+            enabled = canAct,
         )
+
+        Known.TARGETS.forEachIndexed { index, target ->
+            val info = status.installed[target.packageName]
+            val asset = status.assets.firstOrNull { it.packageName == target.packageName }
+            OverviewRow(
+                label = vm.label(target.packageName),
+                value = installedValue(info),
+                valueColor = installedColor(info),
+                onClick = {
+                    if (asset != null) {
+                        vm.requestDownload(asset)
+                    } else {
+                        vm.openScreen(Screen.Install)
+                    }
+                },
+                enabled = canAct,
+                modifier = if (index == 0) {
+                    Modifier.focusRequester(firstActionFocus)
+                } else {
+                    Modifier
+                },
+            )
+        }
+
+        val aosp = status.installed[Known.AOSP_PACKAGE]
+        OverviewRow(
+            label = vm.label(Known.AOSP_PACKAGE),
+            value = installedValue(aosp),
+            valueColor = installedColor(aosp),
+        )
+
+        Spacer(Modifier.height(4.dp))
+        OverviewRow(
+            label = stringResource(R.string.action_restore),
+            value = stringResource(R.string.restore_row_hint),
+            valueColor = Muted,
+            onClick = { vm.requestRestore() },
+            enabled = canAct,
+            danger = true,
+        )
+
+        if (!status.rootAvailable && !status.rootError.isNullOrBlank()) {
+            Note(stringResource(R.string.read_only_banner), Warn)
+            Note(status.rootError, Danger)
+        }
+        status.pendingProvider?.let {
+            Note(stringResource(R.string.pending_reboot) + " · $it", Warn)
+        }
+        if (status.pendingOverlayReboot) {
+            Note(stringResource(R.string.overlay_pending_reboot), Warn)
+        }
+    }
+}
+
+@Composable
+private fun installedValue(info: InstalledPackage?): String = when {
+    info == null -> stringResource(R.string.not_installed)
+    !info.enabled -> listOfNotNull(
+        info.versionName,
+        stringResource(R.string.installed_disabled),
+    ).joinToString(" · ")
+    else -> info.versionName ?: stringResource(R.string.yes)
+}
+
+private fun installedColor(info: InstalledPackage?): Color = when {
+    info == null -> Muted
+    !info.enabled -> Warn
+    else -> Color.White
+}
+
+/**
+ * One piece of information per row. Rows with [onClick] are TV surfaces: they take D-pad focus and
+ * the row itself is the button for that information, so no separate action panel is needed.
+ */
+@Composable
+private fun OverviewRow(
+    label: String,
+    value: String,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    danger: Boolean = false,
+) {
+    val accent = if (danger) Danger else Accent
+    val shape = RoundedCornerShape(8.dp)
+
+    if (onClick == null || !enabled) {
+        OverviewRowContent(
+            label = label,
+            value = value,
+            valueColor = valueColor,
+            danger = danger,
+            focused = false,
+            showsChevron = onClick != null,
+            modifier = modifier,
+        )
+        return
     }
 
-    Spacer(Modifier.height(12.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.Top,
+    val interactionSource = remember { MutableInteractionSource() }
+    val focused by interactionSource.collectIsFocusedAsState()
+    // TV surfacing handles D-pad Enter/center clicks, focus scale and focus border for us.
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        enabled = true,
+        shape = ClickableSurfaceDefaults.shape(shape = shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.Transparent,
+            contentColor = Color.White,
+            focusedContainerColor = CardBackgroundMuted,
+            focusedContentColor = Color.White,
+            pressedContainerColor = Color(0xFF2E3A46),
+            pressedContentColor = Color.White,
+            disabledContainerColor = Color.Transparent,
+            disabledContentColor = Muted,
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
+        border = ClickableSurfaceDefaults.border(
+            border = Border.None,
+            focusedBorder = Border(BorderStroke(2.dp, accent), 0.dp, shape),
+            pressedBorder = Border(BorderStroke(2.dp, accent), 0.dp, shape),
+        ),
+        interactionSource = interactionSource,
     ) {
-        Row(
-            modifier = Modifier.weight(3.5f),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            for (packageName in Known.ALL_PACKAGES) {
-                ProviderCell(vm, status, packageName, Modifier.weight(1f))
-            }
-        }
-        Column(
-            modifier = Modifier.weight(0.8f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                onClick = { vm.openScreen(Screen.Install) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(installFocus),
-                enabled = canWrite,
-            ) {
-                Text(stringResource(R.string.action_install_webview))
-            }
-            Button(
-                onClick = { vm.requestRestore() },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = canWrite,
-                colors = ButtonDefaults.colors(
-                    containerColor = Color(0xFF5A1F1F),
-                    contentColor = Color(0xFFFFCDD2),
-                    focusedContainerColor = Danger,
-                    focusedContentColor = Color.White,
-                ),
-            ) {
-                Text(stringResource(R.string.action_restore))
-            }
-        }
-    }
-
-    if (!status.rootAvailable && !status.rootError.isNullOrBlank()) {
-        Note(stringResource(R.string.read_only_banner), Warn)
-        Note(status.rootError, Danger)
-    }
-    status.pendingProvider?.let {
-        Note(stringResource(R.string.pending_reboot) + " · $it", Warn)
-    }
-    if (status.pendingOverlayReboot) {
-        Note(stringResource(R.string.overlay_pending_reboot), Warn)
-    }
-}
-
-@Composable
-private fun OverviewItem(
-    label: String,
-    value: String,
-    valueColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier) {
-        Text(
-            text = label,
-            color = Muted,
-            fontSize = SmallSize,
-            maxLines = 1,
-        )
-        Text(
-            text = value,
-            color = valueColor,
-            fontSize = BodySize,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/** A status column whose action sits directly under the value it operates on. */
-@Composable
-private fun OverviewActionItem(
-    label: String,
-    value: String,
-    valueColor: Color,
-    actionLabel: String,
-    onAction: () -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier) {
-        Text(
-            text = label,
-            color = Muted,
-            fontSize = SmallSize,
-            maxLines = 1,
-        )
-        Text(
-            text = value,
-            color = valueColor,
-            fontSize = BodySize,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = onAction,
+        OverviewRowContent(
+            label = label,
+            value = value,
+            valueColor = valueColor,
+            danger = danger,
+            focused = focused,
+            showsChevron = true,
             modifier = Modifier.fillMaxWidth(),
-            enabled = enabled,
-        ) {
-            Text(actionLabel)
-        }
+        )
     }
 }
 
 @Composable
-private fun ProviderCell(
-    vm: InstallerViewModel,
-    status: DeviceStatus,
-    packageName: String,
+private fun OverviewRowContent(
+    label: String,
+    value: String,
+    valueColor: Color,
+    danger: Boolean,
+    focused: Boolean,
+    showsChevron: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val info = status.installed[packageName]
-    val value = when {
-        info == null -> stringResource(R.string.not_installed)
-        !info.enabled -> listOfNotNull(
-            info.versionName,
-            stringResource(R.string.installed_disabled),
-        ).joinToString(" · ")
-
-        else -> info.versionName ?: stringResource(R.string.yes)
-    }
-    val valueColor = when {
-        info == null -> Muted
-        !info.enabled -> Warn
-        else -> Color.White
-    }
-    Column(modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
-            text = vm.label(packageName),
-            color = Muted,
-            fontSize = SmallSize,
+            text = label,
+            color = if (danger) Danger else Muted,
+            fontSize = BodySize,
+            fontWeight = FontWeight.Medium,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
         Text(
             text = value,
             color = valueColor,
             fontSize = BodySize,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1.4f),
         )
+        if (showsChevron) {
+            Text(
+                text = "›",
+                color = if (focused) (if (danger) Danger else Accent) else Muted,
+                fontSize = SectionTitleSize,
+                modifier = Modifier.padding(start = 10.dp),
+            )
+        }
     }
 }

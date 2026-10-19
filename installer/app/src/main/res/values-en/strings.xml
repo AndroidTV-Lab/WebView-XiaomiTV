@@ -59,6 +59,7 @@
     <string name="action_deploy_overlay">Redeploy</string>
     <string name="action_set_default">Set default</string>
     <string name="action_restore">Full restore</string>
+    <string name="restore_row_hint">Cannot be undone</string>
 
     <string name="non_mulan_title">Unexpected device</string>
     <string name="non_mulan_message">This device code is %1$s, not mulan. Continuing may write to the wrong partition or have no effect at all.</string>
