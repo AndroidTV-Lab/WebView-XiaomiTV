@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.android.webviewoverlay"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-sdk
+        android:minSdkVersion="28"
+        android:targetSdkVersion="31" />
+
+    <application
+        android:hasCode="false"
+        android:extractNativeLibs="true" />
+
+    <!--
+        Static RRO for the framework resource android:xml/config_webview_packages.
+        android:isStatic / android:priority 从 API 28 (Android 9) 开始支持。
+
+        priority=2：
+          - 小米 TV 上已有 /vendor/overlay/WebViewOverlay.apk
+            (com.afk.webviewoverlay, priority=1)，本 overlay 优先级更高；
+          - Amlogic A12 上 GoogleWebViewOverlay.apk 的 priority=0，同样被覆盖。
+    -->
+    <overlay
+        android:targetPackage="android"
+        android:isStatic="true"
+        android:priority="2" />
+</manifest>

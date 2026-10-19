@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+gradlew text eol=lf
+
+*.apk binary
+*.jks binary
+*.keystore binary

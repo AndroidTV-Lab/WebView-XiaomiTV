@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WebView Installer</string>
+    <string name="unknown">Unknown</string>
+    <string name="not_installed">Not installed</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+
+    <string name="status_title">Status</string>
+    <string name="status_refresh">Refresh</string>
+    <string name="status_refreshing">Refreshing…</string>
+    <string name="status_root_checking">Checking root channel…</string>
+    <string name="root_available">Available</string>
+    <string name="root_unavailable">Unavailable</string>
+    <string name="root_retry">Retry</string>
+    <string name="root_uid">uid=%1$s</string>
+    <string name="read_only_banner">Root channel unavailable: status only, all write operations are disabled.</string>
+    <string name="storage_path">Download directory</string>
+
+    <string name="device_section">Device</string>
+    <string name="device_model">Model</string>
+    <string name="device_name">Device code</string>
+    <string name="device_android">System version</string>
+    <string name="device_android_value">Android %1$s (API %2$d)</string>
+
+    <string name="webview_section">Current WebView</string>
+    <string name="current_provider">Default WebView</string>
+    <string name="overview_root">Root channel</string>
+    <string name="overview_overlay">Overlay</string>
+    <string name="webview_setting">webview_provider setting</string>
+    <string name="provider_version">Version</string>
+    <string name="setting_empty">(not set)</string>
+
+    <string name="overlay_section">WebView Overlay</string>
+    <string name="overlay_file">File</string>
+    <string name="overlay_present">Deployed</string>
+    <string name="overlay_missing">Not deployed</string>
+    <string name="overlay_local_hash">Local SHA-256</string>
+    <string name="overlay_remote_hash">Remote SHA-256</string>
+    <string name="overlay_up_to_date">Up to date</string>
+    <string name="overlay_outdated">Update available</string>
+    <string name="overlay_remote_unknown">Check failed</string>
+    <string name="overlay_recognized">Recognized</string>
+    <string name="overlay_not_recognized">Not recognized</string>
+    <string name="overlay_pending_reboot">Written, waiting for reboot</string>
+    <string name="pending_reboot">Set, waiting for reboot</string>
+    <string name="status_loading">Loading status…</string>
+    <string name="download_section">Download progress</string>
+    <string name="install_asset_missing">Not in manifest</string>
+
+    <string name="installed_section">Installed WebViews</string>
+    <string name="installed_disabled">Disabled</string>
+
+    <string name="installer_version">Installer version</string>
+
+    <string name="action_install_webview">Install / update WebView</string>
+    <string name="action_deploy_overlay">Redeploy overlay</string>
+    <string name="action_set_default">Set default WebView</string>
+    <string name="action_restore">Full restore</string>
+
+    <string name="non_mulan_title">Unexpected device</string>
+    <string name="non_mulan_message">This device code is %1$s, not mulan. Continuing may write to the wrong partition or have no effect at all.</string>
+    <string name="non_mulan_continue">Continue anyway</string>
+    <string name="non_mulan_exit">Exit</string>
+    <string name="vendor_missing_title">Unsupported device</string>
+    <string name="vendor_missing_message">/vendor/overlay was not found. This tool only supports the /vendor/overlay deployment used by Xiaomi TV. Stopped.</string>
+
+    <string name="install_title">Install / update WebView</string>
+    <string name="install_remote_version">Remote version</string>
+    <string name="install_local_version">Installed version</string>
+    <string name="install_size">Size</string>
+    <string name="install_button_download">Download and install</string>
+    <string name="install_button_update">Update</string>
+    <string name="install_button_reinstall">Reinstall</string>
+    <string name="install_manifest_error">Cannot fetch the WebView manifest: %1$s</string>
+    <string name="install_manifest_retry">Retry</string>
+    <string name="install_manifest_loading">Fetching WebView manifest…</string>
+    <string name="install_overlay_hint">The overlay is not recognized by the system yet. Redeploy the overlay and reboot before selecting %1$s as default.</string>
+    <string name="install_overlay_go">Deploy overlay</string>
+    <string name="install_success">%1$s installed successfully.</string>
+    <string name="install_failed">Install failed: %1$s</string>
+    <string name="install_running">Installing %1$s…</string>
+    <string name="install_prepare">Preparing…</string>
+    <string name="install_download_failed">Download failed: %1$s</string>
+
+    <string name="download_confirm_title">Download WebView</string>
+    <string name="download_confirm_message">Download %1$s %2$s (%3$s)?</string>
+    <string name="download_start">Download</string>
+    <string name="download_cancel">Cancel download</string>
+    <string name="download_progress">Downloading %1$s… %2$d%%</string>
+    <string name="download_progress_unknown">Downloading %1$s…</string>
+    <string name="download_source">Source: %1$s</string>
+    <string name="download_cancelled">Download cancelled. The partial file was kept for resume.</string>
+    <string name="download_verifying">Verifying SHA-256…</string>
+    <string name="download_hash_mismatch">SHA-256 mismatch. The file was deleted.</string>
+    <string name="download_retry">Retry</string>
+    <string name="download_notification_channel">Downloads</string>
+    <string name="download_notification_title">Downloading %1$s</string>
+    <string name="download_notification_done">Download complete</string>
+    <string name="download_notification_failed">Download failed</string>
+
+    <string name="overlay_confirm_title">Redeploy overlay</string>
+    <string name="overlay_confirm_message">The latest overlay will be downloaded and written to /vendor/overlay/WebViewOverlay.apk as root. A reboot is required afterwards. Continue?</string>
+    <string name="overlay_confirm_yes">Deploy</string>
+    <string name="overlay_running">Deploying overlay…</string>
+    <string name="overlay_success">Overlay written. It will take effect after a reboot.</string>
+    <string name="overlay_failed">Overlay deployment failed: %1$s</string>
+    <string name="overlay_package_mismatch">The downloaded APK is %1$s, not the overlay.</string>
+
+    <string name="reboot_title">Reboot required</string>
+    <string name="reboot_message">Changes take effect after a reboot. Reboot now?</string>
+    <string name="reboot_now">Reboot now</string>
+    <string name="reboot_later">Later</string>
+    <string name="reboot_sent">Reboot command sent.</string>
+
+    <string name="default_title">Set default WebView</string>
+    <string name="default_hint">The list comes from valid, signature-checked providers in dumpsys webviewupdate.</string>
+    <string name="default_apply">Apply</string>
+    <string name="default_applied">webview_provider set to %1$s. It takes effect after a reboot.</string>
+    <string name="default_failed">Write failed: %1$s</string>
+    <string name="default_current">Current</string>
+    <string name="default_needs_overlay">Deploy the overlay and reboot first</string>
+    <string name="default_no_providers">No providers are available. Install a WebView and reboot so the system recognizes it.</string>
+    <string name="default_running">Writing the default WebView…</string>
+
+    <string name="restore_title">Full restore</string>
+    <string name="restore_message">This will: enable com.android.webview; set the default provider to com.android.webview; uninstall Thorium / AOSmium / Google WebView; delete /vendor/overlay/WebViewOverlay.apk. A reboot is required afterwards. This cannot be undone. Continue?</string>
+    <string name="restore_yes">Restore</string>
+    <string name="restore_no">Cancel</string>
+    <string name="restore_running">Restoring…</string>
+    <string name="restore_success">Restore complete. Please reboot the device.</string>
+    <string name="restore_failed">Restore failed: %1$s</string>
+
+    <string name="error_title">Operation failed</string>
+    <string name="error_ok">OK</string>
+    <string name="error_log">View log</string>
+    <string name="log_title">Log</string>
+    <string name="log_empty">(empty log)</string>
+
+    <string name="need_root_title">Root channel required</string>
+    <string name="need_root_message">The TvService diagnostic channel is unavailable, so write operations cannot run. Check whether the device supports it, then restart the app and retry.</string>
+
+    <string name="set_default_after_install_title">Set as default WebView</string>
+    <string name="set_default_after_install_message">Set %1$s as the default WebView? It takes effect after a reboot.</string>
+    <string name="set_default_after_install_yes">Set default</string>
+    <string name="set_default_after_install_no">Later</string>
+
+    <string name="permission_title">Storage permission required</string>
+    <string name="permission_message">Used to download APKs to /sdcard/Download/WebViewInstaller. If denied, the app-specific directory is used instead.</string>
+    <string name="permission_grant">Grant permission</string>
+    <string name="permission_denied">Storage permission denied. The app-specific directory will be used.</string>
+
+    <string name="name_thorium">Thorium WebView</string>
+    <string name="name_aosmium">AOSmium WebView</string>
+    <string name="name_google">Google WebView</string>
+    <string name="name_aosp">AOSP WebView</string>
+</resources>

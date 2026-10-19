@@ -1,0 +1,15 @@
+# Build output
+out/
+
+# Gradle / IDE
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+
+# Local signing material (CI generates an ephemeral key unless KEYSTORE_BASE64 is set)
+keystore/
+*.jks
+*.keystore
