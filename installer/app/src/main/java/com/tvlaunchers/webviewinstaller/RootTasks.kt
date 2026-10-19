@@ -53,6 +53,7 @@ object RootTasks {
 
     fun setProvider(packageName: String): String = """
         echo "START set provider $packageName"
+        run pm enable --user 0 '$packageName' || fail "pm enable $packageName failed"
         run settings put global webview_provider '$packageName' || fail "settings put failed"
         run settings get global webview_provider
         echo "OK" > "${'$'}EXIT"
