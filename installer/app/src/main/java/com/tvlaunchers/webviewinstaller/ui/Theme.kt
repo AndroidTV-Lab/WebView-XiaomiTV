@@ -32,11 +32,11 @@ val Danger = Color(0xFFFF6B6B)
 val ScreenPadding = 20.dp
 val SectionSpacing = 6.dp
 
-val TitleSize = 28.sp
-val SectionTitleSize = 16.sp
-val BodySize = 15.sp
-val LabelSize = 13.sp
-val SmallSize = 11.sp
+val TitleSize = 30.sp
+val SectionTitleSize = 18.sp
+val BodySize = 17.sp
+val LabelSize = 15.sp
+val SmallSize = 12.sp
 
 val InstallerColorScheme = darkColorScheme(
     primary = Accent,

@@ -294,7 +294,7 @@ private fun DialogBody(text: String) {
         text = text,
         color = TextPrimary,
         fontSize = BodySize,
-        lineHeight = 23.sp,
+        lineHeight = 25.sp,
     )
 }
 
