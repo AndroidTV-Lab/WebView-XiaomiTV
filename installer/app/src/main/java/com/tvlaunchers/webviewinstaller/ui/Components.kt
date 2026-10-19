@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,10 +23,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
 import androidx.tv.material3.Text
@@ -38,9 +41,10 @@ import com.tvlaunchers.webviewinstaller.UiState
 fun Section(
     title: String,
     focusable: Boolean = false,
+    spacing: Dp = 0.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(18.dp)
     var focused by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
@@ -56,8 +60,9 @@ fun Section(
             )
             .background(CardBackground, shape)
             // Read-only cards take focus so D-pad can scroll them into view on a TV.
-            .border(2.dp, if (focused) Accent else Color.Transparent, shape)
-            .padding(12.dp),
+            .border(2.dp, if (focused) Accent else CardBorder, shape)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
         if (title.isNotEmpty()) {
             Text(
@@ -76,7 +81,7 @@ fun Section(
 fun InfoRow(
     label: String,
     value: String,
-    valueColor: Color = Color.White,
+    valueColor: Color = TextPrimary,
     labelColor: Color = Muted,
 ) {
     Row(
@@ -120,14 +125,17 @@ fun ProgressBar(fraction: Float?) {
         modifier = Modifier
             .fillMaxWidth()
             .height(8.dp)
-            .background(Color(0xFF2A333D), RoundedCornerShape(4.dp)),
+            .background(Color(0xFF233140), RoundedCornerShape(4.dp)),
     ) {
         if (fraction != null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(fraction.coerceIn(0f, 1f))
                     .fillMaxHeight()
-                    .background(Accent, RoundedCornerShape(4.dp)),
+                    .background(
+                        Brush.horizontalGradient(listOf(Accent, Color(0xFF8FE3FF))),
+                        RoundedCornerShape(4.dp),
+                    ),
             )
         }
     }
@@ -145,17 +153,28 @@ fun HeaderRow(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         if (showBack && onBack != null) {
-            Button(onClick = onBack, modifier = backModifier) {
+            Button(
+                onClick = onBack,
+                modifier = backModifier,
+                colors = secondaryButtonColors(),
+            ) {
                 Text("←")
             }
         }
+        // Accent spine: a cheap, readable way to anchor the header from across the room.
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(38.dp)
+                .background(Accent, RoundedCornerShape(2.dp)),
+        )
         Column {
             Text(
                 text = title,
-                color = Color.White,
+                color = TextPrimary,
                 fontSize = TitleSize,
                 fontWeight = FontWeight.Bold,
             )
@@ -187,7 +206,7 @@ fun DownloadSection(vm: InstallerViewModel, state: UiState) {
             } else {
                 stringResource(R.string.download_progress_unknown, name)
             },
-            color = Color.White,
+            color = TextPrimary,
             fontSize = BodySize,
         )
         Spacer(Modifier.height(10.dp))
@@ -210,13 +229,17 @@ fun DownloadSection(vm: InstallerViewModel, state: UiState) {
         if (download.cancelled) Note(stringResource(R.string.download_cancelled), Warn)
         Spacer(Modifier.height(10.dp))
         if (download.active) {
-            Button(onClick = { vm.cancelDownload() }) {
+            Button(
+                onClick = { vm.cancelDownload() },
+                colors = secondaryButtonColors(),
+            ) {
                 Text(stringResource(R.string.download_cancel))
             }
         } else {
             Button(
                 onClick = { vm.retryDownload() },
                 enabled = state.status?.rootAvailable == true,
+                colors = primaryButtonColors(),
             ) {
                 Text(stringResource(R.string.download_retry))
             }

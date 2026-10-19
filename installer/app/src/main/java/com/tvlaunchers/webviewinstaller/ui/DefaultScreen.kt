@@ -1,5 +1,6 @@
 package com.tvlaunchers.webviewinstaller.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,10 +23,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Border
 import androidx.tv.material3.Button
-import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Glow
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import com.tvlaunchers.webviewinstaller.DeviceStatus
 import com.tvlaunchers.webviewinstaller.InstallerViewModel
@@ -44,10 +49,19 @@ fun DefaultScreen(vm: InstallerViewModel, state: UiState) {
     val unusable = installedKnown.filter { it !in validProviders }
     val selected = state.selectedProvider ?: status?.pendingProvider
     val backFocus = remember { FocusRequester() }
+    val firstProviderFocus = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) {
+    // Land on the provider list rather than the back arrow: choosing a provider is the whole point
+    // of this screen and the list is what the remote should be able to walk immediately.
+    LaunchedEffect(validProviders) {
         delay(150)
-        runCatching { backFocus.requestFocus() }
+        runCatching {
+            if (validProviders.isEmpty()) {
+                backFocus.requestFocus()
+            } else {
+                firstProviderFocus.requestFocus()
+            }
+        }
     }
 
     LazyColumn(
@@ -73,12 +87,17 @@ fun DefaultScreen(vm: InstallerViewModel, state: UiState) {
                         fontSize = BodySize,
                     )
                 }
-                for (packageName in validProviders) {
+                validProviders.forEachIndexed { index, packageName ->
                     ProviderButton(
                         vm = vm,
                         status = status,
                         packageName = packageName,
                         selected = packageName == selected,
+                        modifier = if (index == 0) {
+                            Modifier.focusRequester(firstProviderFocus)
+                        } else {
+                            Modifier
+                        },
                     )
                     Spacer(Modifier.height(10.dp))
                 }
@@ -97,6 +116,7 @@ fun DefaultScreen(vm: InstallerViewModel, state: UiState) {
                     enabled = selected != null &&
                         status?.rootAvailable == true &&
                         state.busyLabel == null,
+                    colors = primaryButtonColors(),
                 ) {
                     Text(stringResource(R.string.default_apply))
                 }
@@ -111,35 +131,56 @@ private fun ProviderButton(
     status: DeviceStatus?,
     packageName: String,
     selected: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val info = status?.installed?.get(packageName)
     val isCurrent = status?.currentProvider == packageName
+    val shape = RoundedCornerShape(12.dp)
 
-    Button(
+    // Same TV focus language as the overview rows: accent border, glow and a slight lift, so the
+    // selection list reads as one system with the home screen.
+    Surface(
         onClick = { vm.selectProvider(packageName) },
-        modifier = Modifier.fillMaxWidth(),
-        colors = if (selected) {
-            ButtonDefaults.colors(
-                containerColor = Color(0xFF1E4658),
-                contentColor = Color.White,
-                focusedContainerColor = Accent,
-                focusedContentColor = Color(0xFF00202E),
-            )
-        } else {
-            ButtonDefaults.colors()
-        },
+        modifier = modifier.fillMaxWidth(),
+        shape = ClickableSurfaceDefaults.shape(shape = shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = if (selected) AccentSoft else RowBackground,
+            contentColor = TextPrimary,
+            focusedContainerColor = if (selected) AccentSoft else RowBackgroundFocused,
+            focusedContentColor = TextPrimary,
+            pressedContainerColor = AccentSoft,
+            pressedContentColor = Color.White,
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.01f, pressedScale = 0.995f),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(BorderStroke(1.dp, RowBorder), 0.dp, shape),
+            focusedBorder = Border(BorderStroke(2.dp, Accent), 0.dp, shape),
+            pressedBorder = Border(BorderStroke(2.dp, Accent), 0.dp, shape),
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            glow = Glow.None,
+            focusedGlow = Glow(Accent.copy(alpha = 0.35f), 14.dp),
+        ),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = vm.label(packageName),
-                color = if (selected) Color.White else Muted,
+                color = TextPrimary,
+                fontSize = BodySize,
+                fontWeight = FontWeight.Medium,
             )
             Spacer(Modifier.weight(1f))
             info?.versionName?.let {
-                Text(text = it, color = Muted, fontSize = SmallSize)
+                Text(
+                    text = it,
+                    color = Muted,
+                    fontSize = SmallSize,
+                )
             }
             if (isCurrent) {
                 Spacer(Modifier.width(12.dp))
@@ -147,11 +188,17 @@ private fun ProviderButton(
                     text = stringResource(R.string.default_current),
                     color = Ok,
                     fontSize = SmallSize,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
             if (selected) {
                 Spacer(Modifier.width(12.dp))
-                Text(text = "✓", color = Accent)
+                Text(
+                    text = "✓",
+                    color = Accent,
+                    fontSize = BodySize,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }
@@ -167,7 +214,7 @@ private fun UnusableProviderRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(CardBackgroundMuted, RoundedCornerShape(10.dp))
+            .background(CardBackgroundMuted, RoundedCornerShape(12.dp))
             .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

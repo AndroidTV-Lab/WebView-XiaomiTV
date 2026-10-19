@@ -1,9 +1,12 @@
 package com.tvlaunchers.webviewinstaller.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,7 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
 import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Glow
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import com.tvlaunchers.webviewinstaller.BuildConfig
@@ -83,6 +91,7 @@ fun StatusScreen(vm: InstallerViewModel, state: UiState) {
                         onClick = { vm.refresh(true) },
                         modifier = Modifier.focusRequester(refreshFocus),
                         enabled = !state.refreshing && state.busyLabel == null,
+                        colors = secondaryButtonColors(),
                     ) {
                         Text(
                             text = if (state.refreshing) {
@@ -146,7 +155,7 @@ private fun OverviewCard(
     canAct: Boolean,
     firstActionFocus: FocusRequester,
 ) {
-    Section(title = "") {
+    Section(title = "", spacing = 5.dp) {
         if (status == null) {
             Text(
                 text = if (state.rootChecking) {
@@ -170,6 +179,7 @@ private fun OverviewCard(
             label = stringResource(R.string.overview_root),
             value = rootValue,
             valueColor = if (status.rootAvailable) Ok else Danger,
+            dotColor = if (status.rootAvailable) Ok else Danger,
         )
 
         val provider = status.currentProvider
@@ -184,7 +194,9 @@ private fun OverviewCard(
         OverviewRow(
             label = stringResource(R.string.current_provider),
             value = providerValue,
-            valueColor = if (provider == null) Muted else Color.White,
+            valueColor = if (provider == null) Muted else TextPrimary,
+            dotColor = if (provider == null) Muted else Accent,
+            hint = stringResource(R.string.hint_set_default),
             onClick = { vm.openScreen(Screen.Default) },
             enabled = canAct,
         )
@@ -227,6 +239,8 @@ private fun OverviewCard(
             label = stringResource(R.string.overview_overlay),
             value = overlayValue,
             valueColor = overlayColor,
+            dotColor = overlayColor,
+            hint = stringResource(R.string.hint_deploy),
             onClick = { vm.requestOverlayDeploy() },
             enabled = canAct,
         )
@@ -238,6 +252,8 @@ private fun OverviewCard(
                 label = vm.label(target.packageName),
                 value = installedValue(info),
                 valueColor = installedColor(info),
+                dotColor = installedColor(info),
+                hint = stringResource(R.string.hint_download),
                 onClick = {
                     if (asset != null) {
                         vm.requestDownload(asset)
@@ -259,13 +275,16 @@ private fun OverviewCard(
             label = vm.label(Known.AOSP_PACKAGE),
             value = installedValue(aosp),
             valueColor = installedColor(aosp),
+            dotColor = installedColor(aosp),
         )
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         OverviewRow(
             label = stringResource(R.string.action_restore),
             value = stringResource(R.string.restore_row_hint),
             valueColor = Muted,
+            dotColor = Danger,
+            hint = stringResource(R.string.hint_restore),
             onClick = { vm.requestRestore() },
             enabled = canAct,
             danger = true,
@@ -297,62 +316,79 @@ private fun installedValue(info: InstalledPackage?): String = when {
 private fun installedColor(info: InstalledPackage?): Color = when {
     info == null -> Muted
     !info.enabled -> Warn
-    else -> Color.White
+    else -> TextPrimary
 }
 
 /**
- * One piece of information per row. Rows with [onClick] are TV surfaces: they take D-pad focus and
- * the row itself is the button for that information, so no separate action panel is needed.
+ * One piece of information per row, rendered as a TV tile. Rows with [onClick] take D-pad focus and
+ * the row itself is the button: focus shows a status-coloured border, an accent glow and a slight
+ * scale-up, and the trailing chevron swaps to the action hint so the remote's centre key is obvious.
  */
 @Composable
 private fun OverviewRow(
     label: String,
     value: String,
     valueColor: Color,
+    dotColor: Color,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     danger: Boolean = false,
+    hint: String? = null,
 ) {
     val accent = if (danger) Danger else Accent
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(12.dp)
 
     if (onClick == null || !enabled) {
-        OverviewRowContent(
-            label = label,
-            value = value,
-            valueColor = valueColor,
-            danger = danger,
-            focused = false,
-            showsChevron = onClick != null,
-            modifier = modifier,
-        )
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(RowBackground, shape)
+                .border(1.dp, RowBorder, shape),
+        ) {
+            OverviewRowContent(
+                label = label,
+                value = value,
+                valueColor = valueColor,
+                dotColor = dotColor,
+                danger = danger,
+                focused = false,
+                showsChevron = onClick != null,
+                accent = accent,
+                hint = null,
+            )
+        }
         return
     }
 
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    // TV surfacing handles D-pad Enter/center clicks, focus scale and focus border for us.
+    // TV surface handles D-pad Enter/center, focus scale, border and glow for us.
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         enabled = true,
         shape = ClickableSurfaceDefaults.shape(shape = shape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color.Transparent,
-            contentColor = Color.White,
-            focusedContainerColor = CardBackgroundMuted,
-            focusedContentColor = Color.White,
-            pressedContainerColor = Color(0xFF2E3A46),
+            containerColor = RowBackground,
+            contentColor = TextPrimary,
+            focusedContainerColor = RowBackgroundFocused,
+            focusedContentColor = TextPrimary,
+            pressedContainerColor = AccentSoft,
             pressedContentColor = Color.White,
-            disabledContainerColor = Color.Transparent,
+            disabledContainerColor = RowBackground,
             disabledContentColor = Muted,
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f, pressedScale = 1f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.015f, pressedScale = 0.995f),
         border = ClickableSurfaceDefaults.border(
-            border = Border.None,
+            border = Border(BorderStroke(1.dp, RowBorder), 0.dp, shape),
             focusedBorder = Border(BorderStroke(2.dp, accent), 0.dp, shape),
             pressedBorder = Border(BorderStroke(2.dp, accent), 0.dp, shape),
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            glow = Glow.None,
+            focusedGlow = Glow(accent.copy(alpha = 0.35f), 14.dp),
+            pressedGlow = Glow(accent.copy(alpha = 0.25f), 10.dp),
         ),
         interactionSource = interactionSource,
     ) {
@@ -360,9 +396,12 @@ private fun OverviewRow(
             label = label,
             value = value,
             valueColor = valueColor,
+            dotColor = dotColor,
             danger = danger,
             focused = focused,
             showsChevron = true,
+            accent = accent,
+            hint = hint,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -373,21 +412,31 @@ private fun OverviewRowContent(
     label: String,
     value: String,
     valueColor: Color,
+    dotColor: Color,
     danger: Boolean,
     focused: Boolean,
     showsChevron: Boolean,
+    accent: Color,
+    hint: String?,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .height(40.dp)
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(dotColor, CircleShape),
+        )
+        Spacer(Modifier.width(10.dp))
         Text(
             text = label,
-            color = if (danger) Danger else Muted,
-            fontSize = BodySize,
+            color = if (danger) Danger else TextPrimary,
+            fontSize = LabelSize,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             modifier = Modifier.weight(1f),
@@ -403,12 +452,27 @@ private fun OverviewRowContent(
             modifier = Modifier.weight(1.4f),
         )
         if (showsChevron) {
-            Text(
-                text = "›",
-                color = if (focused) (if (danger) Danger else Accent) else Muted,
-                fontSize = SectionTitleSize,
-                modifier = Modifier.padding(start = 10.dp),
-            )
+            Spacer(Modifier.width(12.dp))
+            Box(
+                modifier = Modifier.widthIn(min = 64.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                if (focused && hint != null) {
+                    Text(
+                        text = hint,
+                        color = accent,
+                        fontSize = LabelSize,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                } else {
+                    Text(
+                        text = "›",
+                        color = if (focused) accent else Muted,
+                        fontSize = SectionTitleSize,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
         }
     }
 }

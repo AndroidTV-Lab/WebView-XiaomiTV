@@ -11,6 +11,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,7 +37,19 @@ fun InstallerApp(vm: InstallerViewModel, onExit: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background),
+            .background(
+                Brush.verticalGradient(
+                    listOf(BackgroundTop, Background, BackgroundBottom),
+                ),
+            )
+            // Soft cyan wash in the top-left corner, like a TV ambient backdrop.
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0x334FC3F7), Color(0x000B1118)),
+                    center = Offset(120f, -80f),
+                    radius = 1200f,
+                ),
+            ),
     ) {
         when (state.screen) {
             Screen.Status -> StatusScreen(vm, state)

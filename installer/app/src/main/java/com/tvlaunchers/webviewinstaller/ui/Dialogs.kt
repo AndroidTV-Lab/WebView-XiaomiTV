@@ -1,6 +1,7 @@
 package com.tvlaunchers.webviewinstaller.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,7 @@ fun DialogHost(vm: InstallerViewModel, dialog: DialogState) {
                 modifier = Modifier
                     .width(720.dp)
                     .background(CardBackground, RoundedCornerShape(18.dp))
+                    .border(1.dp, CardBorder, RoundedCornerShape(18.dp))
                     .padding(28.dp),
             ) {
                 when (dialog) {
@@ -229,7 +231,7 @@ private fun ErrorDialog(vm: InstallerViewModel, dialog: DialogState.Error) {
         if (!log.isNullOrBlank()) {
             Spacer(Modifier.height(14.dp))
             if (!expanded) {
-                Button(onClick = { expanded = true }) {
+                Button(onClick = { expanded = true }, colors = secondaryButtonColors()) {
                     Text(stringResource(R.string.error_log))
                 }
             } else {
@@ -267,6 +269,7 @@ private fun ErrorDialog(vm: InstallerViewModel, dialog: DialogState.Error) {
             Button(
                 onClick = { vm.dismissDialog() },
                 modifier = Modifier.focusRequester(okFocus),
+                colors = primaryButtonColors(),
             ) {
                 Text(stringResource(R.string.error_ok))
             }
@@ -278,7 +281,7 @@ private fun ErrorDialog(vm: InstallerViewModel, dialog: DialogState.Error) {
 private fun DialogTitle(text: String) {
     Text(
         text = text,
-        color = Color.White,
+        color = TextPrimary,
         fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
     )
@@ -289,7 +292,7 @@ private fun DialogBody(text: String) {
     Spacer(Modifier.height(14.dp))
     Text(
         text = text,
-        color = Color.White,
+        color = TextPrimary,
         fontSize = BodySize,
         lineHeight = 23.sp,
     )
@@ -302,7 +305,7 @@ private fun DialogButtons(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
     focusConfirm: Boolean,
-    confirmColors: ButtonColors = ButtonDefaults.colors(),
+    confirmColors: ButtonColors = primaryButtonColors(),
 ) {
     val cancelFocus = remember { FocusRequester() }
     val confirmFocus = remember { FocusRequester() }
@@ -322,6 +325,7 @@ private fun DialogButtons(
         Button(
             onClick = onCancel,
             modifier = Modifier.focusRequester(cancelFocus),
+            colors = secondaryButtonColors(),
         ) {
             Text(cancelText)
         }
@@ -337,3 +341,21 @@ private fun DialogButtons(
 }
 
 private const val MAX_LOG_CHARS = 20000
+
+/** Confirm/primary action: accent fill on focus, dark text for contrast against the bright accent. */
+@Composable
+fun primaryButtonColors(): ButtonColors = ButtonDefaults.colors(
+    containerColor = AccentSoft,
+    contentColor = TextPrimary,
+    focusedContainerColor = Accent,
+    focusedContentColor = Color(0xFF00202E),
+)
+
+/** Cancel/secondary action: neutral fill, same accent focus treatment so D-pad focus is obvious. */
+@Composable
+fun secondaryButtonColors(): ButtonColors = ButtonDefaults.colors(
+    containerColor = RowBackground,
+    contentColor = TextPrimary,
+    focusedContainerColor = Accent,
+    focusedContentColor = Color(0xFF00202E),
+)

@@ -9,7 +9,10 @@ local.properties
 .idea/
 *.iml
 
-# Local signing material (CI generates an ephemeral key unless KEYSTORE_BASE64 is set)
+# Local signing material (CI requires KEYSTORE_BASE64 / KEYSTORE_PASS and fails without them)
 keystore/
 *.jks
 *.keystore
+
+# Local device screenshots
+.shots/

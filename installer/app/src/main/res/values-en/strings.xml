@@ -60,6 +60,10 @@
     <string name="action_set_default">Set default</string>
     <string name="action_restore">Full restore</string>
     <string name="restore_row_hint">Cannot be undone</string>
+    <string name="hint_set_default">Set</string>
+    <string name="hint_deploy">Deploy</string>
+    <string name="hint_download">Download</string>
+    <string name="hint_restore">Restore</string>
 
     <string name="non_mulan_title">Unexpected device</string>
     <string name="non_mulan_message">This device code is %1$s, not mulan. Continuing may write to the wrong partition or have no effect at all.</string>

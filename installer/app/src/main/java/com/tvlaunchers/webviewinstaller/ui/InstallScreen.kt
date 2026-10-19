@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
@@ -71,7 +70,7 @@ fun InstallScreen(vm: InstallerViewModel, state: UiState) {
                         fontSize = BodySize,
                     )
                     Spacer(Modifier.height(10.dp))
-                    Button(onClick = { vm.refresh(true) }) {
+                    Button(onClick = { vm.refresh(true) }, colors = primaryButtonColors()) {
                         Text(stringResource(R.string.install_manifest_retry))
                     }
                 }
@@ -116,23 +115,24 @@ private fun AssetCard(
         InfoRow(
             label = stringResource(R.string.install_local_version),
             value = installed?.versionName ?: stringResource(R.string.not_installed),
-            valueColor = if (installed == null) Muted else Color.White,
+            valueColor = if (installed == null) Muted else TextPrimary,
         )
         InfoRow(
             label = stringResource(R.string.install_remote_version),
             value = asset?.versionName
                 ?: if (state.manifestLoading) "…" else stringResource(R.string.install_asset_missing),
-            valueColor = if (asset == null) Muted else Color.White,
+            valueColor = if (asset == null) Muted else TextPrimary,
         )
         InfoRow(
             label = stringResource(R.string.install_size),
             value = asset?.let { Http.formatSize(it.size) } ?: "—",
-            valueColor = if (asset == null) Muted else Color.White,
+            valueColor = if (asset == null) Muted else TextPrimary,
         )
         Spacer(Modifier.height(10.dp))
         Button(
             onClick = { asset?.let { vm.requestDownload(it) } },
             enabled = canAct,
+            colors = primaryButtonColors(),
         ) {
             Text(
                 text = when {

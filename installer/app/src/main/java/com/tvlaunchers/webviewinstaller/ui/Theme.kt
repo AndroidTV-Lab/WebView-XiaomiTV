@@ -5,40 +5,54 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.darkColorScheme
 
-val Background = Color(0xFF0F1318)
-val CardBackground = Color(0xFF1A2028)
-val CardBackgroundMuted = Color(0xFF141A21)
-val Accent = Color(0xFF4FC3F7)
-val Muted = Color(0xFF9FB0BF)
-val Ok = Color(0xFF81C784)
-val Warn = Color(0xFFFFB74D)
-val Danger = Color(0xFFEF5350)
+// Deep graphite/navy palette with a cyan accent. TV UIs are viewed from a distance, so contrast
+// stays high and focus is always communicated by more than colour (border + glow + scale).
+val Background = Color(0xFF0B1118)
+val BackgroundTop = Color(0xFF0E1721)
+val BackgroundBottom = Color(0xFF080D13)
+
+val CardBackground = Color(0xFF151E28)
+val CardBackgroundMuted = Color(0xFF111923)
+val CardBorder = Color(0xFF243240)
+
+val RowBackground = Color(0xFF1B2633)
+val RowBackgroundFocused = Color(0xFF243B50)
+val RowBorder = Color(0xFF2A3948)
+
+val Accent = Color(0xFF57C8FF)
+val AccentSoft = Color(0xFF1E4A5F)
+val Muted = Color(0xFF93A6B8)
+val TextPrimary = Color(0xFFF2F7FB)
+val Ok = Color(0xFF6FD48B)
+val Warn = Color(0xFFFFC15C)
+val Danger = Color(0xFFFF6B6B)
 
 // The TV reports 1920x1080 at density 320, i.e. only 960x540 dp. Sizes are tuned so the whole
 // status page (root, actions, WebView, overlay, installed providers) fits on one screen.
-val ScreenPadding = 24.dp
+val ScreenPadding = 20.dp
 val SectionSpacing = 8.dp
 
-val TitleSize = 26.sp
+val TitleSize = 28.sp
 val SectionTitleSize = 16.sp
-val BodySize = 14.sp
+val BodySize = 15.sp
+val LabelSize = 13.sp
 val SmallSize = 11.sp
 
 val InstallerColorScheme = darkColorScheme(
     primary = Accent,
     onPrimary = Color(0xFF00202E),
-    primaryContainer = Color(0xFF0B3A4D),
+    primaryContainer = AccentSoft,
     onPrimaryContainer = Color(0xFFB3E5FC),
     secondary = Color(0xFF80CBC4),
     onSecondary = Color(0xFF00201C),
     background = Background,
-    onBackground = Color.White,
+    onBackground = TextPrimary,
     surface = CardBackground,
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF27313C),
+    onSurface = TextPrimary,
+    surfaceVariant = RowBackground,
     onSurfaceVariant = Muted,
-    border = Color(0xFF3A4753),
-    borderVariant = Color(0xFF27313C),
+    border = CardBorder,
+    borderVariant = RowBorder,
     error = Danger,
     onError = Color.White,
 )

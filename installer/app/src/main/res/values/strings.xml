@@ -60,6 +60,10 @@
     <string name="action_set_default">设置默认</string>
     <string name="action_restore">完整还原</string>
     <string name="restore_row_hint">不可撤销</string>
+    <string name="hint_set_default">设置</string>
+    <string name="hint_deploy">部署</string>
+    <string name="hint_download">下载</string>
+    <string name="hint_restore">还原</string>
 
     <string name="non_mulan_title">非目标设备</string>
     <string name="non_mulan_message">当前设备代号为 %1$s，不是 mulan。继续操作可能写入错误的分区，或完全不起作用。</string>
