@@ -58,7 +58,7 @@
     <string name="action_install_webview">Install</string>
     <string name="action_deploy_overlay">Redeploy</string>
     <string name="action_set_default">Set default</string>
-    <string name="action_restore">Full restore</string>
+    <string name="action_restore">Restore system defaults</string>
     <string name="restore_row_hint">Cannot be undone</string>
     <string name="hint_set_default">Set</string>
     <string name="hint_deploy">Deploy</string>
@@ -130,7 +130,7 @@
     <string name="default_no_providers">No providers are available. Install a WebView and reboot so the system recognizes it.</string>
     <string name="default_running">Writing the default WebView…</string>
 
-    <string name="restore_title">Full restore</string>
+    <string name="restore_title">Restore system defaults</string>
     <string name="restore_message">This will: enable com.android.webview; set the default provider to com.android.webview; uninstall Thorium / AOSmium / Google WebView; delete /vendor/overlay/WebViewOverlay.apk. A reboot is required afterwards. This cannot be undone. Continue?</string>
     <string name="restore_yes">Restore</string>
     <string name="restore_no">Cancel</string>
