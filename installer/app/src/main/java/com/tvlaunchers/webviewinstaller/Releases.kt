@@ -5,14 +5,17 @@ import org.json.JSONObject
 
 object Releases {
     const val REPO = "TVLaunchers/WebView-XiaomiTV"
-    private const val BASE = "https://github.com/$REPO/releases/download"
+    private const val BASE = "https://github.com/$REPO/releases"
 
-    const val LATEST_TAG = "latest"
-    const val ASSETS_TAG = "webview-assets"
+    // CI tags releases with the build date and marks them as GitHub's latest, so the installer
+    // must follow "latest" rather than a fixed tag.
+    private const val LATEST = "$BASE/latest/download"
+    private const val ASSETS_TAG = "webview-assets"
+    private const val ASSETS = "$BASE/download/$ASSETS_TAG"
 
-    const val OVERLAY_URL = "$BASE/$LATEST_TAG/WebViewOverlay.apk"
-    const val OVERLAY_SHA_URL = "$BASE/$LATEST_TAG/WebViewOverlay.apk.sha256"
-    const val MANIFEST_URL = "$BASE/$ASSETS_TAG/manifest.json"
+    const val OVERLAY_URL = "$LATEST/WebViewOverlay.apk"
+    const val OVERLAY_SHA_URL = "$LATEST/WebViewOverlay.apk.sha256"
+    const val MANIFEST_URL = "$ASSETS/manifest.json"
 
     /** Mirrors are prepended to the GitHub URL; the first working source wins. */
     private val MIRRORS = listOf(
@@ -22,7 +25,7 @@ object Releases {
 
     fun candidates(url: String): List<String> = listOf(url) + MIRRORS.map { it + url }
 
-    fun assetUrl(fileName: String): String = "$BASE/$ASSETS_TAG/$fileName"
+    fun assetUrl(fileName: String): String = "$ASSETS/$fileName"
 
     fun parseManifest(text: String): List<WebViewAsset> {
         val root = JSONObject(text)

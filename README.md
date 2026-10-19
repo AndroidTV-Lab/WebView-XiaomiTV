@@ -25,7 +25,7 @@ WebView-XiaomiTV/
   res/xml/config_webview_packages.xml
   installer/                          # 设备端安装器（Kotlin + Compose for TV）
     app/src/main/java/com/tvlaunchers/webviewinstaller/
-  .github/workflows/build-overlay.yml  # GitHub Actions（唯一构建入口）
+  .github/workflows/build-release.yml  # GitHub Actions（唯一构建入口）
   README.md
 ```
 
@@ -84,7 +84,7 @@ XML 里的 `<signature>` 是从对应 APK 的实际签名证书提取的（DER �
 `aapt2 compile` → `aapt2 link` → `zipalign -p -f 4` → `apksigner sign` →
 `apksigner verify`，并在上传前校验 manifest 与 provider 列表。
 
-触发方式与 `CatVodSpider-WebMonkey` 的 `build-release.yml` 保持一致：
+工作流为 `.github/workflows/build-release.yml`，触发方式：
 
 - 向 `main` 提交 PR 并且**已合并**（closed + merged）；
 - 或在 Actions 页面手动 `Run workflow`。
@@ -94,13 +94,15 @@ XML 里的 `<signature>` 是从对应 APK 的实际签名证书提取的（DER �
 1. 用 `aapt2` / `zipalign` / `apksigner` 构建并校验 `WebViewOverlay.apk`；
 2. 用 Gradle 构建 `WebViewInstaller.apk`（`installer/`，`assembleRelease`）；
 3. 上传 Artifacts（**WebViewTools**，包含两个 APK 及各自的 `.sha256`）；
-4. 创建或更新固定的 `latest` Release（tag `latest`，名称 `WebView Tools`），
-   两个 APK 和 `.sha256` 都会覆盖写入。
+4. 以构建日期作为版本号和 Release tag：tag 与 `versionName` 为
+   `YYYY.MM.DD`（Asia/Shanghai），`versionCode` 为 `YYYYMMDD`；
+   创建或更新该日期的 Release，并标记为 GitHub 的 **latest**。
+   同一天重复构建会覆盖当天的 Release。
 
-安装器里的下载地址因此是固定的：
+安装器跟随 GitHub 的 latest Release 下载，因此不需要知道日期 tag：
 
-- `https://github.com/TVLaunchers/WebView-XiaomiTV/releases/download/latest/WebViewOverlay.apk`
-- `https://github.com/TVLaunchers/WebView-XiaomiTV/releases/download/latest/WebViewOverlay.apk.sha256`
+- `https://github.com/TVLaunchers/WebView-XiaomiTV/releases/latest/download/WebViewOverlay.apk`
+- `https://github.com/TVLaunchers/WebView-XiaomiTV/releases/latest/download/WebViewOverlay.apk.sha256`
 
 ### 签名
 
@@ -129,7 +131,7 @@ XML 里的 `<signature>` 是从对应 APK 的实际签名证书提取的（DER �
 
 ### 安装与启动
 
-从 `latest` Release 下载 `WebViewInstaller.apk`，然后：
+从 GitHub 的 latest Release（按构建日期打 tag）下载 `WebViewInstaller.apk`，然后：
 
 ```bash
 adb install -r WebViewInstaller.apk
@@ -172,7 +174,7 @@ service call TvService 4400 s16 s s16 <脚本绝对路径>
 2. **安装 / 更新 WebView**：每个 WebView 显示本机版本、远端版本和大小。
    下载完成后先校验 APK 包名，再以 root 执行 `pm install -r --user 0`。
    可重复运行，已安装同版本时按钮显示“重新安装”。
-3. **部署 Overlay**：下载 `latest` 中的 overlay，校验 `.sha256` 与包名后，
+3. **部署 Overlay**：下载 latest Release 中的 overlay，校验 `.sha256` 与包名后，
    以 root 重新挂载 `/vendor`、写入 `/vendor/overlay/WebViewOverlay.apk`、
    设置 `644 root:root`、`restorecon`、`sync`，最后重新挂载为只读。
 4. **设置默认 WebView**：列表来自 `dumpsys webviewupdate` 中签名有效的
@@ -198,7 +200,7 @@ service call TvService 4400 s16 s s16 <脚本绝对路径>
 
 | tag | 文件 | 维护方式 |
 | --- | --- | --- |
-| `latest` | `WebViewOverlay.apk`、`WebViewOverlay.apk.sha256`、`WebViewInstaller.apk`、`WebViewInstaller.apk.sha256` | CI 自动覆盖 |
+| `YYYY.MM.DD` | `WebViewOverlay.apk`、`WebViewOverlay.apk.sha256`、`WebViewInstaller.apk`、`WebViewInstaller.apk.sha256` | CI 按构建日期创建，当天重复构建会覆盖；最新的一个被标记为 GitHub latest |
 | `webview-assets` | `manifest.json`、`thorium.apk`、`aosmium.apk`、`google.apk` | **手动维护** |
 
 `webview-assets` 只提供“离线 / 镜像”性质的 WebView 本体，CI 不构建也不校验它们。

@@ -17,6 +17,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Compute version
+        id: version
+        run: |
+          set -euo pipefail
+          # Date only, in the maintainers' timezone, so a release is easy to identify on the TV.
+          DATE="$(TZ=Asia/Shanghai date +'%Y.%m.%d')"
+          CODE="$(TZ=Asia/Shanghai date +'%Y%m%d')"
+          echo "name=$DATE" >> "$GITHUB_OUTPUT"
+          echo "tag=$DATE" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Version: $DATE (versionCode $CODE)"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
@@ -133,8 +145,8 @@ jobs:
           KEYSTORE_PATH: ${{ github.workspace }}/keystore/thorium-overlay.jks
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 1.0.${{ github.run_number }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
         run: |
           set -euo pipefail
           chmod +x installer/gradlew
@@ -170,10 +182,12 @@ jobs:
       - name: Create or update release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: latest
-          name: WebView Tools
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: WebView Tools ${{ steps.version.outputs.name }}
           body: |
-            Fixed `latest` tag used by the on-device installer.
+            Dated build `${{ steps.version.outputs.name }}` (versionCode `${{ steps.version.outputs.code }}`, run `${{ github.run_number }}`).
+
+            The on-device installer downloads from the repository's latest release.
 
             - `WebViewOverlay.apk` — static RRO for `config_webview_packages`
             - `WebViewInstaller.apk` — TV installer (package `com.tvlaunchers.webviewinstaller`)
