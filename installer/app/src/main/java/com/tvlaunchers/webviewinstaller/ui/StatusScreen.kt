@@ -1,6 +1,8 @@
 package com.tvlaunchers.webviewinstaller.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -87,10 +89,10 @@ fun StatusScreen(vm: InstallerViewModel, state: UiState) {
             )
         }
 
-        // Root, default provider, overlay and every installed provider live in one compact card,
-        // so nothing important sits below the fold on a 540 dp tall TV screen.
+        // Root, default provider, overlay, every installed provider and the actions share one
+        // card, so nothing important sits below the fold on a 540 dp tall TV screen.
         item {
-            OverviewCard(vm, state, status)
+            OverviewCard(vm, state, status, canWrite, installFocus)
         }
 
         val busyLabel = state.busyLabel
@@ -114,10 +116,6 @@ fun StatusScreen(vm: InstallerViewModel, state: UiState) {
                 DownloadSection(vm, state)
             }
         }
-
-        item {
-            ActionsSection(vm, state, canWrite, installFocus)
-        }
     }
 }
 
@@ -133,7 +131,13 @@ private fun headerSubtitle(status: DeviceStatus?): String {
 }
 
 @Composable
-private fun OverviewCard(vm: InstallerViewModel, state: UiState, status: DeviceStatus?) {
+private fun OverviewCard(
+    vm: InstallerViewModel,
+    state: UiState,
+    status: DeviceStatus?,
+    canWrite: Boolean,
+    installFocus: FocusRequester,
+) {
     Section(title = "") {
         if (status == null) {
             Text(
@@ -145,108 +149,123 @@ private fun OverviewCard(vm: InstallerViewModel, state: UiState, status: DeviceS
                 color = Muted,
                 fontSize = BodySize,
             )
-            return@Section
-        }
-
-        val rootValue = if (status.rootAvailable) {
-            stringResource(R.string.root_available) + " · " +
-                stringResource(R.string.root_uid, status.rootUid ?: "?")
         } else {
-            stringResource(R.string.root_unavailable)
+            OverviewContent(vm, status)
         }
-        val rootColor = if (status.rootAvailable) Ok else Danger
 
-        val provider = status.currentProvider
-        val providerValue = provider?.let {
-            buildString {
-                append(vm.label(it))
-                status.currentVersion?.takeIf { v -> v.isNotBlank() }?.let { v ->
-                    append(" · ").append(v)
-                }
+        Spacer(Modifier.height(14.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFF2A333D)),
+        )
+        Spacer(Modifier.height(14.dp))
+
+        ActionsContent(vm, canWrite, installFocus)
+    }
+}
+
+@Composable
+private fun OverviewContent(vm: InstallerViewModel, status: DeviceStatus) {
+    val rootValue = if (status.rootAvailable) {
+        stringResource(R.string.root_available) + " · " +
+            stringResource(R.string.root_uid, status.rootUid ?: "?")
+    } else {
+        stringResource(R.string.root_unavailable)
+    }
+    val rootColor = if (status.rootAvailable) Ok else Danger
+
+    val provider = status.currentProvider
+    val providerValue = provider?.let {
+        buildString {
+            append(vm.label(it))
+            status.currentVersion?.takeIf { v -> v.isNotBlank() }?.let { v ->
+                append(" · ").append(v)
             }
-        } ?: stringResource(R.string.unknown)
-        val providerColor = if (provider == null) Muted else Color.White
+        }
+    } ?: stringResource(R.string.unknown)
+    val providerColor = if (provider == null) Muted else Color.White
 
-        val local = status.overlayHash
-        val remote = status.remoteOverlayHash
-        val same = local != null && remote != null && local.equals(remote, ignoreCase = true)
-        val overlayValue = buildString {
-            append(
-                stringResource(
-                    if (status.overlayExists) R.string.overlay_present else R.string.overlay_missing
-                )
+    val local = status.overlayHash
+    val remote = status.remoteOverlayHash
+    val same = local != null && remote != null && local.equals(remote, ignoreCase = true)
+    val overlayValue = buildString {
+        append(
+            stringResource(
+                if (status.overlayExists) R.string.overlay_present else R.string.overlay_missing
             )
+        )
+        append(" · ")
+        append(
+            stringResource(
+                if (status.overlayRecognized) {
+                    R.string.overlay_recognized
+                } else {
+                    R.string.overlay_not_recognized
+                }
+            )
+        )
+        if (local != null && remote != null) {
             append(" · ")
             append(
                 stringResource(
-                    if (status.overlayRecognized) {
-                        R.string.overlay_recognized
-                    } else {
-                        R.string.overlay_not_recognized
-                    }
+                    if (same) R.string.overlay_up_to_date else R.string.overlay_outdated
                 )
             )
-            if (local != null && remote != null) {
-                append(" · ")
-                append(
-                    stringResource(
-                        if (same) R.string.overlay_up_to_date else R.string.overlay_outdated
-                    )
-                )
-            }
         }
-        val overlayColor = when {
-            !status.overlayExists -> Danger
-            !status.overlayRecognized -> Warn
-            local != null && remote != null && !same -> Warn
-            else -> Ok
-        }
+    }
+    val overlayColor = when {
+        !status.overlayExists -> Danger
+        !status.overlayRecognized -> Warn
+        local != null && remote != null && !same -> Warn
+        else -> Ok
+    }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            OverviewItem(
-                label = stringResource(R.string.overview_root),
-                value = rootValue,
-                valueColor = rootColor,
-                modifier = Modifier.weight(1f),
-            )
-            OverviewItem(
-                label = stringResource(R.string.current_provider),
-                value = providerValue,
-                valueColor = providerColor,
-                modifier = Modifier.weight(1.4f),
-            )
-            OverviewItem(
-                label = stringResource(R.string.overview_overlay),
-                value = overlayValue,
-                valueColor = overlayColor,
-                modifier = Modifier.weight(1.5f),
-            )
-        }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        OverviewItem(
+            label = stringResource(R.string.overview_root),
+            value = rootValue,
+            valueColor = rootColor,
+            modifier = Modifier.weight(1f),
+        )
+        OverviewItem(
+            label = stringResource(R.string.current_provider),
+            value = providerValue,
+            valueColor = providerColor,
+            modifier = Modifier.weight(1.4f),
+        )
+        OverviewItem(
+            label = stringResource(R.string.overview_overlay),
+            value = overlayValue,
+            valueColor = overlayColor,
+            modifier = Modifier.weight(1.5f),
+        )
+    }
 
-        Spacer(Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            for (packageName in Known.ALL_PACKAGES) {
-                ProviderCell(vm, status, packageName, Modifier.weight(1f))
-            }
+    Spacer(Modifier.height(10.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        for (packageName in Known.ALL_PACKAGES) {
+            ProviderCell(vm, status, packageName, Modifier.weight(1f))
         }
+    }
 
-        if (!status.rootAvailable && !status.rootError.isNullOrBlank()) {
-            Note(stringResource(R.string.read_only_banner), Warn)
-            Note(status.rootError, Danger)
-        }
-        status.pendingProvider?.let {
-            Note(stringResource(R.string.pending_reboot) + " · $it", Warn)
-        }
-        if (status.pendingOverlayReboot) {
-            Note(stringResource(R.string.overlay_pending_reboot), Warn)
-        }
+    if (!status.rootAvailable && !status.rootError.isNullOrBlank()) {
+        Note(stringResource(R.string.read_only_banner), Warn)
+        Note(status.rootError, Danger)
+    }
+    status.pendingProvider?.let {
+        Note(stringResource(R.string.pending_reboot) + " · $it", Warn)
+    }
+    if (status.pendingOverlayReboot) {
+        Note(stringResource(R.string.overlay_pending_reboot), Warn)
     }
 }
 
@@ -316,59 +335,56 @@ private fun ProviderCell(
 }
 
 @Composable
-private fun ActionsSection(
+private fun ActionsContent(
     vm: InstallerViewModel,
-    state: UiState,
     canWrite: Boolean,
     installFocus: FocusRequester,
 ) {
-    Section(title = "") {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Button(
+            onClick = { vm.openScreen(Screen.Install) },
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(installFocus),
+            enabled = canWrite,
         ) {
-            Button(
-                onClick = { vm.openScreen(Screen.Install) },
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(installFocus),
-                enabled = canWrite,
-            ) {
-                Text(stringResource(R.string.action_install_webview))
-            }
-            Button(
-                onClick = { vm.requestOverlayDeploy() },
-                modifier = Modifier.weight(1f),
-                enabled = canWrite,
-            ) {
-                Text(stringResource(R.string.action_deploy_overlay))
-            }
+            Text(stringResource(R.string.action_install_webview))
         }
-        Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Button(
+            onClick = { vm.requestOverlayDeploy() },
+            modifier = Modifier.weight(1f),
+            enabled = canWrite,
         ) {
-            Button(
-                onClick = { vm.openScreen(Screen.Default) },
-                modifier = Modifier.weight(1f),
-                enabled = canWrite,
-            ) {
-                Text(stringResource(R.string.action_set_default))
-            }
-            Button(
-                onClick = { vm.requestRestore() },
-                modifier = Modifier.weight(1f),
-                enabled = canWrite,
-                colors = ButtonDefaults.colors(
-                    containerColor = Color(0xFF5A1F1F),
-                    contentColor = Color(0xFFFFCDD2),
-                    focusedContainerColor = Danger,
-                    focusedContentColor = Color.White,
-                ),
-            ) {
-                Text(stringResource(R.string.action_restore))
-            }
+            Text(stringResource(R.string.action_deploy_overlay))
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Button(
+            onClick = { vm.openScreen(Screen.Default) },
+            modifier = Modifier.weight(1f),
+            enabled = canWrite,
+        ) {
+            Text(stringResource(R.string.action_set_default))
+        }
+        Button(
+            onClick = { vm.requestRestore() },
+            modifier = Modifier.weight(1f),
+            enabled = canWrite,
+            colors = ButtonDefaults.colors(
+                containerColor = Color(0xFF5A1F1F),
+                contentColor = Color(0xFFFFCDD2),
+                focusedContainerColor = Danger,
+                focusedContentColor = Color.White,
+            ),
+        ) {
+            Text(stringResource(R.string.action_restore))
         }
     }
 }
