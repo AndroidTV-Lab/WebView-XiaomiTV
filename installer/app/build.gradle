@@ -60,6 +60,11 @@ android {
 
     packagingOptions {
         resources.excludes += ["/META-INF/{AL2.0,LGPL2.1}"]
+        // AGP stores DEX uncompressed when minSdk >= 28. Compress it: the APK is roughly
+        // halved, at the cost of extracting the dex once at install time.
+        dex {
+            useLegacyPackaging = true
+        }
     }
 
     lint {
