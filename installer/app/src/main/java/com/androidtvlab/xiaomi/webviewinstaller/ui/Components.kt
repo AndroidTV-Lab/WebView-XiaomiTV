@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller.ui
+package com.androidtvlab.xiaomi.webviewinstaller.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,10 +32,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
 import androidx.tv.material3.Text
-import com.tvlaunchers.webviewinstaller.Http
-import com.tvlaunchers.webviewinstaller.InstallerViewModel
-import com.tvlaunchers.webviewinstaller.R
-import com.tvlaunchers.webviewinstaller.UiState
+import com.androidtvlab.xiaomi.webviewinstaller.Http
+import com.androidtvlab.xiaomi.webviewinstaller.InstallerViewModel
+import com.androidtvlab.xiaomi.webviewinstaller.R
+import com.androidtvlab.xiaomi.webviewinstaller.UiState
 
 @Composable
 fun Section(

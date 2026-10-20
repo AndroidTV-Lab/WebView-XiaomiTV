@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller
+package com.androidtvlab.xiaomi.webviewinstaller
 
 import android.app.Application
 import android.content.pm.PackageManager

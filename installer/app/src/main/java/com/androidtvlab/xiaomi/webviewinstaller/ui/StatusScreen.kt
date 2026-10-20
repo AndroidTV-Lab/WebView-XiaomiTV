@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller.ui
+package com.androidtvlab.xiaomi.webviewinstaller.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -45,14 +45,14 @@ import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Glow
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import com.tvlaunchers.webviewinstaller.BuildConfig
-import com.tvlaunchers.webviewinstaller.DeviceStatus
-import com.tvlaunchers.webviewinstaller.InstalledPackage
-import com.tvlaunchers.webviewinstaller.InstallerViewModel
-import com.tvlaunchers.webviewinstaller.Known
-import com.tvlaunchers.webviewinstaller.R
-import com.tvlaunchers.webviewinstaller.Screen
-import com.tvlaunchers.webviewinstaller.UiState
+import com.androidtvlab.xiaomi.webviewinstaller.BuildConfig
+import com.androidtvlab.xiaomi.webviewinstaller.DeviceStatus
+import com.androidtvlab.xiaomi.webviewinstaller.InstalledPackage
+import com.androidtvlab.xiaomi.webviewinstaller.InstallerViewModel
+import com.androidtvlab.xiaomi.webviewinstaller.Known
+import com.androidtvlab.xiaomi.webviewinstaller.R
+import com.androidtvlab.xiaomi.webviewinstaller.Screen
+import com.androidtvlab.xiaomi.webviewinstaller.UiState
 import kotlinx.coroutines.delay
 
 @Composable

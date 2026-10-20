@@ -192,7 +192,7 @@ jobs:
           BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           PKG="$("$BT/aapt2" dump packagename out/WebViewInstaller.apk)"
           echo "package: $PKG"
-          test "$PKG" = "com.tvlaunchers.webviewinstaller"
+          test "$PKG" = "com.androidtvlab.xiaomi.webviewinstaller"
           "$BT/apksigner" verify --print-certs out/WebViewInstaller.apk
           # The overlay must actually be embedded: that copy is what gets deployed.
           unzip -l out/WebViewInstaller.apk | grep -q 'assets/WebViewOverlay.apk'
@@ -222,7 +222,7 @@ jobs:
             The installer carries the overlay inside its APK and deploys that bundled copy.
             The standalone overlay archive is published to the `webview-assets` release.
 
-            - `WebViewInstaller.apk` — TV installer (package `com.tvlaunchers.webviewinstaller`)
+            - `WebViewInstaller.apk` — TV installer (package `com.androidtvlab.xiaomi.webviewinstaller`)
             - `.sha256` — verify with `sha256sum -c` or the installer itself
           files: |
             out/WebViewInstaller.apk

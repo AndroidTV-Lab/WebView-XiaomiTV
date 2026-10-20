@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller
+package com.androidtvlab.xiaomi.webviewinstaller
 
 /**
  * Script bodies executed by [RootShell]. They run after the preamble that defines PATH, LOG,

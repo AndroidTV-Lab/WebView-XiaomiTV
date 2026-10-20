@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller
+package com.androidtvlab.xiaomi.webviewinstaller
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -359,8 +359,8 @@ class DownloadService : Service() {
     }
 
     companion object {
-        const val ACTION_START = "com.tvlaunchers.webviewinstaller.START_DOWNLOAD"
-        const val ACTION_CANCEL = "com.tvlaunchers.webviewinstaller.CANCEL_DOWNLOAD"
+        const val ACTION_START = "com.androidtvlab.xiaomi.webviewinstaller.START_DOWNLOAD"
+        const val ACTION_CANCEL = "com.androidtvlab.xiaomi.webviewinstaller.CANCEL_DOWNLOAD"
 
         private const val EXTRA_ASSET_ID = "asset_id"
         private const val EXTRA_DISPLAY_NAME = "display_name"

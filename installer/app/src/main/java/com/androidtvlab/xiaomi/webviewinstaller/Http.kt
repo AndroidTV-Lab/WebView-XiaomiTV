@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller
+package com.androidtvlab.xiaomi.webviewinstaller
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

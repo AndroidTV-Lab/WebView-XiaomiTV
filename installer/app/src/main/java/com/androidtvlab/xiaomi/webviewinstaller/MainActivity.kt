@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller
+package com.androidtvlab.xiaomi.webviewinstaller
 
 import android.os.Bundle
 import android.view.WindowManager
@@ -6,8 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.material3.MaterialTheme
-import com.tvlaunchers.webviewinstaller.ui.InstallerApp
-import com.tvlaunchers.webviewinstaller.ui.InstallerColorScheme
+import com.androidtvlab.xiaomi.webviewinstaller.ui.InstallerApp
+import com.androidtvlab.xiaomi.webviewinstaller.ui.InstallerColorScheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

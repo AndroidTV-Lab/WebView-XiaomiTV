@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller.ui
+package com.androidtvlab.xiaomi.webviewinstaller.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -17,8 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.Text
-import com.tvlaunchers.webviewinstaller.InstallerViewModel
-import com.tvlaunchers.webviewinstaller.Screen
+import com.androidtvlab.xiaomi.webviewinstaller.InstallerViewModel
+import com.androidtvlab.xiaomi.webviewinstaller.Screen
 
 @Composable
 fun InstallerApp(vm: InstallerViewModel, onExit: () -> Unit) {

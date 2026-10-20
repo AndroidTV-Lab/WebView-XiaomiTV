@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller.ui
+package com.androidtvlab.xiaomi.webviewinstaller.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp

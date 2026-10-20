@@ -1,4 +1,4 @@
-package com.tvlaunchers.webviewinstaller.ui
+package com.androidtvlab.xiaomi.webviewinstaller.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,10 +43,10 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonColors
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Text
-import com.tvlaunchers.webviewinstaller.DialogState
-import com.tvlaunchers.webviewinstaller.InstallerViewModel
-import com.tvlaunchers.webviewinstaller.R
-import com.tvlaunchers.webviewinstaller.UiState
+import com.androidtvlab.xiaomi.webviewinstaller.DialogState
+import com.androidtvlab.xiaomi.webviewinstaller.InstallerViewModel
+import com.androidtvlab.xiaomi.webviewinstaller.R
+import com.androidtvlab.xiaomi.webviewinstaller.UiState
 import kotlinx.coroutines.delay
 
 @Composable
@@ -122,7 +122,7 @@ private fun ConfirmDownloadDialog(vm: InstallerViewModel, dialog: DialogState.Co
                 R.string.download_confirm_message,
                 vm.assetTitle(asset),
                 asset.versionName ?: stringResource(R.string.unknown),
-                com.tvlaunchers.webviewinstaller.Http.formatSize(asset.size),
+                com.androidtvlab.xiaomi.webviewinstaller.Http.formatSize(asset.size),
             )
         )
         vm.assetDescription(asset)?.let { DialogBody(it) }
@@ -249,8 +249,8 @@ private fun VariantsDialog(
 @Composable
 private fun VariantCard(
     vm: InstallerViewModel,
-    asset: com.tvlaunchers.webviewinstaller.WebViewAsset,
-    installed: com.tvlaunchers.webviewinstaller.InstalledPackage?,
+    asset: com.androidtvlab.xiaomi.webviewinstaller.WebViewAsset,
+    installed: com.androidtvlab.xiaomi.webviewinstaller.InstalledPackage?,
     currentProvider: String?,
     busy: Boolean,
     actionModifier: Modifier,
@@ -335,14 +335,14 @@ private fun Badge(text: String) {
 }
 
 @Composable
-private fun variantMeta(vm: InstallerViewModel, asset: com.tvlaunchers.webviewinstaller.WebViewAsset): String {
+private fun variantMeta(vm: InstallerViewModel, asset: com.androidtvlab.xiaomi.webviewinstaller.WebViewAsset): String {
     val parts = ArrayList<String>()
     parts.add(asset.versionName ?: stringResource(R.string.unknown))
-    if (asset.size > 0) parts.add(com.tvlaunchers.webviewinstaller.Http.formatSize(asset.size))
+    if (asset.size > 0) parts.add(com.androidtvlab.xiaomi.webviewinstaller.Http.formatSize(asset.size))
     when (asset.signer) {
-        com.tvlaunchers.webviewinstaller.Known.SIGNER_PROJECT ->
+        com.androidtvlab.xiaomi.webviewinstaller.Known.SIGNER_PROJECT ->
             parts.add(stringResource(R.string.signer_project))
-        com.tvlaunchers.webviewinstaller.Known.SIGNER_VENDOR ->
+        com.androidtvlab.xiaomi.webviewinstaller.Known.SIGNER_VENDOR ->
             parts.add(stringResource(R.string.signer_vendor))
     }
     return parts.joinToString(" · ")

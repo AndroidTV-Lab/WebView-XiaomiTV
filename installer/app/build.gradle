@@ -9,11 +9,11 @@ def envVersionName = System.getenv("VERSION_NAME")
 def envKeystore = System.getenv("KEYSTORE_PATH")
 
 android {
-    namespace = "com.tvlaunchers.webviewinstaller"
+    namespace = "com.androidtvlab.xiaomi.webviewinstaller"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tvlaunchers.webviewinstaller"
+        applicationId = "com.androidtvlab.xiaomi.webviewinstaller"
         minSdk = 28
         targetSdk = 28
         versionCode = envVersionCode ? envVersionCode.toInteger() : 1
