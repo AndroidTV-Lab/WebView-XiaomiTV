@@ -272,8 +272,13 @@ private fun OverviewCard(
                     val familyLabel = vm.label(target.packageName)
                     // A WebView family opens its variant picker, where the user can compare the
                     // packages, install one, switch, or uninstall the family.
+                    // The row already says which family this is, so the note only carries the
+                    // variant: "Thorium（关闭 WebGPU）" would not fit and reads as an echo.
                     val note = listOfNotNull(
-                        installedAsset?.let { vm.assetTitle(it) }?.takeIf { it != familyLabel },
+                        installedAsset
+                            ?.let { vm.assetTitle(it) }
+                            ?.takeIf { it != familyLabel }
+                            ?.let(::variantSummary),
                         installedNote(info),
                     ).joinToString(" · ").ifBlank { null }
                     OverviewRow(
@@ -347,6 +352,17 @@ private fun OverviewCard(
 private fun installedValue(info: InstalledPackage?): String = when {
     info == null -> stringResource(R.string.not_installed)
     else -> info.versionName ?: stringResource(R.string.yes)
+}
+
+/**
+ * "Thorium（关闭 WebGPU）" -> "关闭 WebGPU". Manifest titles repeat the family name that the row
+ * label already shows; keeping just the parenthetical part makes the second line fit.
+ */
+private fun variantSummary(title: String?): String? {
+    if (title.isNullOrBlank()) return null
+    val open = title.indexOfFirst { it == '（' || it == '(' }
+    if (open < 0) return title
+    return title.substring(open + 1).trimEnd('）', ')').trim().ifBlank { null }
 }
 
 /** Shown under the version: a disabled package needs the extra room of a second line. */

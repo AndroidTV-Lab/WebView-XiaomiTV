@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -57,16 +61,22 @@ fun DialogHost(vm: InstallerViewModel, state: UiState, dialog: DialogState) {
         },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
+        // TVs run a 960x540 dp surface, and a long variant list used to make the panel taller
+        // than the screen, so cards were sliced off at the edges. BoxWithConstraints gives the
+        // panel a real ceiling and lets each dialog decide how to spend the height it gets.
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
                     .width(720.dp)
+                    .heightIn(max = maxHeight)
                     .background(CardBackground, RoundedCornerShape(18.dp))
                     .border(1.dp, CardBorder, RoundedCornerShape(18.dp))
-                    .padding(28.dp),
+                    .padding(horizontal = 22.dp, vertical = 18.dp),
             ) {
                 when (dialog) {
                     is DialogState.NonMulan -> NonMulanDialog(vm, dialog)
@@ -140,12 +150,18 @@ private fun VariantsDialog(
     val busy = state.busyLabel != null || state.download.active
     val installedAsset = assets.firstOrNull { vm.isInstalled(it, installed) }
     val primaryFocus = remember { FocusRequester() }
+    val listState = rememberLazyListState()
     val focusIndex = assets.indexOfFirst { it.recommended && !vm.isInstalled(it, installed) }
         .takeIf { it >= 0 }
         ?: assets.indexOfFirst { !vm.isInstalled(it, installed) }.takeIf { it >= 0 }
         ?: 0
 
     LaunchedEffect(Unit) {
+        // Open on the card that is about to take focus: with every variant in view this is a
+        // no-op, and when the list does overflow it starts at a card edge instead of scrolling
+        // halfway through one. Requesting focus on an item the list never composed would
+        // silently fail and leave the dialog unfocused.
+        runCatching { listState.scrollToItem(focusIndex) }
         delay(150)
         runCatching { primaryFocus.requestFocus() }
     }
@@ -180,14 +196,17 @@ private fun VariantsDialog(
                 )
             }
         } else {
-            Spacer(Modifier.height(16.dp))
-            Column(
+            Spacer(Modifier.height(12.dp))
+            // Whatever height the dialog has left after the title, the installed line and the
+            // buttons; `fill = false` keeps the list wrapped when two short cards do fit.
+            LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 300.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                assets.forEachIndexed { index, asset ->
+                itemsIndexed(assets, key = { _, asset -> asset.id }) { index, asset ->
                     VariantCard(
                         vm = vm,
                         asset = asset,
@@ -201,12 +220,11 @@ private fun VariantsDialog(
                         },
                         onSelect = { vm.requestDownload(asset) },
                     )
-                    if (index != assets.lastIndex) Spacer(Modifier.height(12.dp))
                 }
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
@@ -255,7 +273,7 @@ private fun VariantCard(
                 color = if (isCurrent) Accent else CardBorder,
                 shape = RoundedCornerShape(12.dp),
             )
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(
             text = vm.assetTitle(asset),
@@ -264,7 +282,7 @@ private fun VariantCard(
             fontWeight = FontWeight.SemiBold,
         )
         if (isCurrent || isInstalled || asset.recommended || asset.webgpu == false) {
-            Spacer(Modifier.height(7.dp))
+            Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (asset.recommended) Badge(stringResource(R.string.badge_recommended))
                 if (isCurrent) Badge(stringResource(R.string.badge_current))
@@ -272,14 +290,14 @@ private fun VariantCard(
                 if (asset.webgpu == false) Badge(stringResource(R.string.badge_webgpu_off))
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = variantMeta(vm, asset),
             color = Muted,
             fontSize = 12.sp,
         )
         vm.assetDescription(asset)?.let {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
                 text = it,
                 color = TextPrimary,
@@ -287,7 +305,7 @@ private fun VariantCard(
                 lineHeight = 20.sp,
             )
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
         Button(
             onClick = onSelect,
             enabled = !busy,
@@ -525,7 +543,8 @@ private fun ErrorDialog(vm: InstallerViewModel, dialog: DialogState.Error) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 320.dp)
+                        // Never push the OK button off the panel on a short screen.
+                        .weight(1f, fill = false)
                         .background(Background, RoundedCornerShape(8.dp))
                         .focusable()
                         .verticalScroll(rememberScrollState())

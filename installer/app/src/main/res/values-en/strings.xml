@@ -66,7 +66,7 @@
     <string name="hint_set_default">Set</string>
     <string name="hint_deploy">Deploy</string>
     <string name="hint_download">Download</string>
-    <string name="hint_variants">Versions</string>
+    <string name="hint_variants">Choose</string>
     <string name="hint_restore">Restore</string>
 
     <string name="variants_title">%1$s versions</string>
@@ -180,8 +180,10 @@
     <string name="set_default_after_install_yes">Set default</string>
     <string name="set_default_after_install_no">Later</string>
 
-    <string name="name_thorium">Thorium WebView</string>
-    <string name="name_aosmium">AOSmium WebView</string>
-    <string name="name_google">Google WebView</string>
-    <string name="name_aosp">AOSP WebView</string>
+    <!-- The screen is a WebView installer and the column is headed by these names; repeating
+         "WebView" here costs the version string its width on the half-screen rows. -->
+    <string name="name_thorium">Thorium</string>
+    <string name="name_aosmium">AOSmium</string>
+    <string name="name_google">Google</string>
+    <string name="name_aosp">AOSP</string>
 </resources>

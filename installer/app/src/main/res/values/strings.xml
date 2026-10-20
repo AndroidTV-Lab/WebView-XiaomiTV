@@ -66,7 +66,9 @@
     <string name="hint_set_default">设置</string>
     <string name="hint_deploy">部署</string>
     <string name="hint_download">下载</string>
-    <string name="hint_variants">选择版本</string>
+    <!-- Two characters: the focused hint shares the row with the version, and a longer one
+         pushes "138.0.7204.45" into an ellipsis. -->
+    <string name="hint_variants">选择</string>
     <string name="hint_restore">恢复</string>
 
     <string name="variants_title">%1$s 版本</string>
@@ -180,8 +182,10 @@
     <string name="set_default_after_install_yes">设为默认</string>
     <string name="set_default_after_install_no">稍后</string>
 
-    <string name="name_thorium">Thorium WebView</string>
-    <string name="name_aosmium">AOSmium WebView</string>
-    <string name="name_google">Google WebView</string>
-    <string name="name_aosp">AOSP WebView</string>
+    <!-- The screen is a WebView installer and the column is headed by these names; repeating
+         "WebView" here costs the version string its width on the half-screen rows. -->
+    <string name="name_thorium">Thorium</string>
+    <string name="name_aosmium">AOSmium</string>
+    <string name="name_google">Google</string>
+    <string name="name_aosp">AOSP</string>
 </resources>
