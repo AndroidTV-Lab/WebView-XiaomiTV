@@ -121,9 +121,6 @@ jobs:
           cat WebViewOverlay.apk.sha256
 
       - name: Verify overlay contents
-        env:
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           set -euo pipefail
           BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
@@ -148,15 +145,19 @@ jobs:
           ! grep -qE 'com\.google\.android\.webview\.' providers.txt
 
           # Thorium and Google accept both the vendor-signed stock build and the patched build
-          # signed with the project key, so the project certificate must appear once per family
-          # and match the key this build signs with.
-          KS_PASS="${KEYSTORE_PASS:-android}"
-          KS_ALIAS="${KEY_ALIAS:-thorium-overlay}"
-          PROJECT_CERT="$(keytool -exportcert -keystore keystore/thorium-overlay.jks \
-            -alias "$KS_ALIAS" -storepass "$KS_PASS" -rfc \
-            | sed -e '/-----/d' | tr -d '\n')"
-          test -n "$PROJECT_CERT"
-          COUNT="$(grep -c "$PROJECT_CERT" providers.txt || true)"
+          # signed with the project key, so the certificate that signed this overlay must appear
+          # once per family. Compare against the APK's own signer instead of re-exporting the
+          # keystore, so the check tracks exactly what will be deployed.
+          SIGNER_SHA="$("$BT/apksigner" verify --print-certs out/WebViewOverlay.apk \
+            | sed -n 's/^.*certificate SHA-256 digest: //p' | head -n 1 | tr 'A-F' 'a-f')"
+          test -n "$SIGNER_SHA"
+          COUNT=0
+          while IFS= read -r CERT; do
+            CERT_SHA="$(printf '%s' "$CERT" | base64 -d | sha256sum | cut -d' ' -f1)"
+            if [ "$CERT_SHA" = "$SIGNER_SHA" ]; then
+              COUNT=$((COUNT + 1))
+            fi
+          done < <(sed -n "s/^ *T: '\(.*\)'\$/\1/p" providers.txt)
           echo "project certificate occurrences: $COUNT"
           test "$COUNT" -eq 2
 
