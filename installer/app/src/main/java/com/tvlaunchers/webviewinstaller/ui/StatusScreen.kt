@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
 import androidx.tv.material3.ClickableSurfaceDefaults
@@ -107,8 +108,8 @@ fun StatusScreen(vm: InstallerViewModel, state: UiState) {
         }
 
         // One item per row, and every actionable row *is* the action: the default row opens the
-        // default-provider screen, the overlay row redeploys, a WebView row starts its download,
-        // and the restore row runs the full restore.
+        // default-provider screen, the overlay row redeploys, a WebView row opens its variant
+        // picker, and the restore row runs the full restore.
         item {
             OverviewCard(vm, state, status, canAct, firstActionFocus)
         }
@@ -265,22 +266,32 @@ private fun OverviewCard(
             ) {
                 Known.TARGETS.forEachIndexed { index, target ->
                     val info = status.installed[target.packageName]
-                    val asset = status.assets.firstOrNull { it.packageName == target.packageName }
+                    val hasAssets = status.assets.any { it.packageName == target.packageName }
+                    val installedAsset =
+                        if (info != null) status.assets.firstOrNull { vm.isInstalled(it, info) } else null
+                    val familyLabel = vm.label(target.packageName)
+                    // A WebView family opens its variant picker, where the user can compare the
+                    // packages, install one, switch, or uninstall the family.
+                    val note = listOfNotNull(
+                        installedAsset?.let { vm.assetTitle(it) }?.takeIf { it != familyLabel },
+                        installedNote(info),
+                    ).joinToString(" · ").ifBlank { null }
                     OverviewRow(
-                        label = vm.label(target.packageName),
+                        label = familyLabel,
                         value = installedValue(info),
-                        note = installedNote(info),
+                        note = note,
+                        badge = if (target.recommended) {
+                            stringResource(R.string.badge_recommended)
+                        } else {
+                            null
+                        },
                         valueColor = installedColor(info),
                         dotColor = installedColor(info),
-                        // An installed WebView opens its action dialog (update / reinstall /
-                        // uninstall); a missing one starts its download.
-                        hint = stringResource(
-                            if (info != null) R.string.hint_manage else R.string.hint_download
-                        ),
-                        onClick = when {
-                            info != null -> ({ vm.openManage(target.packageName) })
-                            asset != null -> ({ asset?.let { vm.requestDownload(it) } })
-                            else -> null
+                        hint = stringResource(R.string.hint_variants),
+                        onClick = if (info != null || hasAssets) {
+                            ({ vm.openVariants(target.packageName) })
+                        } else {
+                            null
                         },
                         enabled = canAct,
                         modifier = if (index == 0) {
@@ -362,6 +373,7 @@ private fun OverviewRow(
     dotColor: Color,
     modifier: Modifier = Modifier,
     note: String? = null,
+    badge: String? = null,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     danger: Boolean = false,
@@ -381,6 +393,7 @@ private fun OverviewRow(
                 label = label,
                 value = value,
                 note = note,
+                badge = badge,
                 valueColor = valueColor,
                 dotColor = dotColor,
                 danger = danger,
@@ -428,6 +441,7 @@ private fun OverviewRow(
             label = label,
             value = value,
             note = note,
+            badge = badge,
             valueColor = valueColor,
             dotColor = dotColor,
             danger = danger,
@@ -445,6 +459,7 @@ private fun OverviewRowContent(
     label: String,
     value: String,
     note: String?,
+    badge: String?,
     valueColor: Color,
     dotColor: Color,
     danger: Boolean,
@@ -478,6 +493,19 @@ private fun OverviewRowContent(
             // "Webview Overlay" is never cut off and the value uses whatever is left.
             modifier = Modifier,
         )
+        if (badge != null) {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = badge,
+                color = Accent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier
+                    .background(Accent.copy(alpha = 0.14f), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            )
+        }
         Column(
             horizontalAlignment = Alignment.End,
             modifier = Modifier

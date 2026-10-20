@@ -8,7 +8,11 @@ sealed interface DialogState {
     data class NonMulan(val device: String) : DialogState
     data class Error(val title: String, val message: String, val log: String?) : DialogState
     data class ConfirmDownload(val asset: WebViewAsset) : DialogState
-    data class Manage(val packageName: String) : DialogState
+    data class Variants(val packageName: String) : DialogState
+    data class ConfirmReplace(
+        val asset: WebViewAsset,
+        val path: String,
+    ) : DialogState
     data object ConfirmOverlay : DialogState
     data object ConfirmRestore : DialogState
     data class ConfirmUninstall(val packageName: String) : DialogState
@@ -22,7 +26,12 @@ sealed interface DialogState {
     data class OverlayRequired(val packageName: String) : DialogState
 }
 
-data class KnownTarget(val id: String, val packageName: String, @StringRes val nameRes: Int)
+data class KnownTarget(
+    val id: String,
+    val packageName: String,
+    @StringRes val nameRes: Int,
+    val recommended: Boolean = false,
+)
 
 object Known {
     const val OVERLAY_PACKAGE = "com.android.webviewoverlay"
@@ -31,9 +40,22 @@ object Known {
     const val OVERLAY_PATH = "$OVERLAY_DIR/WebViewOverlay.apk"
     const val AOSP_PACKAGE = "com.android.webview"
 
+    /**
+     * SHA-256 (uppercase hex) of the DER certificate of the project signing key
+     * (`thorium-overlay.jks`). Every patched WebView variant is signed with that key, and the
+     * overlay trusts the same certificate. Keep this in sync with
+     * overlay/res/xml/config_webview_packages.xml.
+     */
+    const val PROJECT_SIGNER_SHA256 =
+        "0BD9927722CB322B795FC56BB06FC2FFC6B5F839559B93BEBED68CB4CE2486FD"
+    const val SIGNER_PROJECT = "project"
+    const val SIGNER_VENDOR = "vendor"
+
+    // Order drives the WebView rows on the overview's right column: the recommended family comes
+    // first so the remote lands on it.
     val TARGETS = listOf(
+        KnownTarget("aosmium", "org.axpos.aosmium_wv", R.string.name_aosmium, recommended = true),
         KnownTarget("thorium", "com.thorium.webview", R.string.name_thorium),
-        KnownTarget("aosmium", "org.axpos.aosmium_wv", R.string.name_aosmium),
         KnownTarget("google", "com.google.android.webview", R.string.name_google),
     )
 
@@ -53,6 +75,18 @@ data class WebViewAsset(
     val versionCode: Long?,
     val minSdk: Int?,
     val abi: String?,
+    /** Localized display name, e.g. "Thorium 标准版（关闭 WebGPU）". */
+    val title: String? = null,
+    val titleEn: String? = null,
+    val description: String? = null,
+    val descriptionEn: String? = null,
+    /** Short machine-readable variant name such as "stock" or "nowebgpu". */
+    val variant: String? = null,
+    /** null means "not stated by the manifest". */
+    val webgpu: Boolean? = null,
+    /** [Known.SIGNER_PROJECT] or [Known.SIGNER_VENDOR]. */
+    val signer: String? = null,
+    val recommended: Boolean = false,
 )
 
 data class InstalledPackage(
@@ -60,6 +94,8 @@ data class InstalledPackage(
     val versionName: String?,
     val versionCode: Long,
     val enabled: Boolean,
+    /** SHA-256 (uppercase hex) of the signing certificate, or null when unavailable. */
+    val signerSha256: String? = null,
 )
 
 data class DeviceStatus(

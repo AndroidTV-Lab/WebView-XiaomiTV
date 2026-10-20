@@ -72,7 +72,8 @@ fun DialogHost(vm: InstallerViewModel, state: UiState, dialog: DialogState) {
                     is DialogState.NonMulan -> NonMulanDialog(vm, dialog)
                     is DialogState.Error -> ErrorDialog(vm, dialog)
                     is DialogState.ConfirmDownload -> ConfirmDownloadDialog(vm, dialog)
-                    is DialogState.Manage -> ManageDialog(vm, state, dialog)
+                    is DialogState.Variants -> VariantsDialog(vm, state, dialog)
+                    is DialogState.ConfirmReplace -> ConfirmReplaceDialog(vm, state, dialog)
                     is DialogState.ConfirmOverlay -> ConfirmOverlayDialog(vm)
                     is DialogState.ConfirmRestore -> ConfirmRestoreDialog(vm)
                     is DialogState.ConfirmUninstall -> ConfirmUninstallDialog(vm, dialog)
@@ -109,11 +110,12 @@ private fun ConfirmDownloadDialog(vm: InstallerViewModel, dialog: DialogState.Co
         DialogBody(
             stringResource(
                 R.string.download_confirm_message,
-                vm.label(asset.packageName),
+                vm.assetTitle(asset),
                 asset.versionName ?: stringResource(R.string.unknown),
                 com.tvlaunchers.webviewinstaller.Http.formatSize(asset.size),
             )
         )
+        vm.assetDescription(asset)?.let { DialogBody(it) }
         DialogButtons(
             cancelText = stringResource(R.string.close),
             confirmText = stringResource(R.string.download_start),
@@ -125,17 +127,23 @@ private fun ConfirmDownloadDialog(vm: InstallerViewModel, dialog: DialogState.Co
 }
 
 @Composable
-private fun ManageDialog(
+private fun VariantsDialog(
     vm: InstallerViewModel,
     state: UiState,
-    dialog: DialogState.Manage,
+    dialog: DialogState.Variants,
 ) {
     val installed = state.status?.installed?.get(dialog.packageName)
-    val asset = state.status?.assets?.firstOrNull { it.packageName == dialog.packageName }
-    val hasUpdate = installed != null && asset?.versionName != null &&
-        asset.versionName != installed.versionName
-    val hasAsset = asset != null
+    val currentProvider = state.status?.currentProvider
+    val assets = state.status?.assets
+        ?.filter { it.packageName == dialog.packageName }
+        .orEmpty()
+    val busy = state.busyLabel != null || state.download.active
+    val installedAsset = assets.firstOrNull { vm.isInstalled(it, installed) }
     val primaryFocus = remember { FocusRequester() }
+    val focusIndex = assets.indexOfFirst { it.recommended && !vm.isInstalled(it, installed) }
+        .takeIf { it >= 0 }
+        ?: assets.indexOfFirst { !vm.isInstalled(it, installed) }.takeIf { it >= 0 }
+        ?: 0
 
     LaunchedEffect(Unit) {
         delay(150)
@@ -143,51 +151,209 @@ private fun ManageDialog(
     }
 
     Column {
-        DialogTitle(vm.label(dialog.packageName))
+        DialogTitle(stringResource(R.string.variants_title, vm.label(dialog.packageName)))
         DialogBody(
-            stringResource(
-                R.string.manage_message,
-                installed?.versionName ?: stringResource(R.string.not_installed),
-                asset?.versionName ?: stringResource(R.string.install_asset_missing),
-            )
+            if (installed == null) {
+                stringResource(R.string.not_installed)
+            } else {
+                stringResource(
+                    R.string.variants_installed_line,
+                    installedAsset?.let { vm.assetTitle(it) } ?: vm.label(dialog.packageName),
+                    installed.versionName ?: stringResource(R.string.unknown),
+                )
+            }
         )
-        Spacer(Modifier.height(22.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            Button(onClick = { vm.dismissDialog() }, colors = secondaryButtonColors()) {
-                Text(stringResource(R.string.action_cancel))
+
+        if (assets.isEmpty()) {
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = stringResource(R.string.install_asset_missing),
+                color = Muted,
+                fontSize = BodySize,
+            )
+            state.status?.manifestError?.takeIf { it.isNotBlank() }?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.install_manifest_error, it),
+                    color = Danger,
+                    fontSize = 13.sp,
+                )
             }
-            Spacer(Modifier.width(12.dp))
-            Button(
-                onClick = { vm.requestUninstall(dialog.packageName) },
-                colors = dangerButtonColors(),
-                modifier = if (!hasAsset) Modifier.focusRequester(primaryFocus) else Modifier,
+        } else {
+            Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp)
+                    .verticalScroll(rememberScrollState()),
             ) {
-                Text(stringResource(R.string.action_uninstall))
-            }
-            if (hasAsset) {
-                Spacer(Modifier.width(12.dp))
-                Button(
-                    onClick = { asset?.let { vm.confirmDownload(it) } },
-                    colors = if (hasUpdate) secondaryButtonColors() else primaryButtonColors(),
-                    modifier = if (hasUpdate) Modifier else Modifier.focusRequester(primaryFocus),
-                ) {
-                    Text(stringResource(R.string.install_button_reinstall))
-                }
-                if (hasUpdate) {
-                    Spacer(Modifier.width(12.dp))
-                    Button(
-                        onClick = { asset?.let { vm.confirmDownload(it) } },
-                        colors = primaryButtonColors(),
-                        modifier = Modifier.focusRequester(primaryFocus),
-                    ) {
-                        Text(stringResource(R.string.install_button_update))
-                    }
+                assets.forEachIndexed { index, asset ->
+                    VariantCard(
+                        vm = vm,
+                        asset = asset,
+                        installed = installed,
+                        currentProvider = currentProvider,
+                        busy = busy,
+                        actionModifier = if (index == focusIndex) {
+                            Modifier.focusRequester(primaryFocus)
+                        } else {
+                            Modifier
+                        },
+                        onSelect = { vm.requestDownload(asset) },
+                    )
+                    if (index != assets.lastIndex) Spacer(Modifier.height(12.dp))
                 }
             }
         }
+
+        Spacer(Modifier.height(20.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (installed != null) {
+                Button(
+                    onClick = { vm.requestUninstall(dialog.packageName) },
+                    colors = dangerButtonColors(),
+                ) {
+                    Text(stringResource(R.string.action_uninstall))
+                }
+                Spacer(Modifier.width(12.dp))
+            }
+            Button(onClick = { vm.dismissDialog() }, colors = secondaryButtonColors()) {
+                Text(stringResource(R.string.close))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VariantCard(
+    vm: InstallerViewModel,
+    asset: com.tvlaunchers.webviewinstaller.WebViewAsset,
+    installed: com.tvlaunchers.webviewinstaller.InstalledPackage?,
+    currentProvider: String?,
+    busy: Boolean,
+    actionModifier: Modifier,
+    onSelect: () -> Unit,
+) {
+    val isInstalled = vm.isInstalled(asset, installed)
+    val isCurrent = vm.isCurrent(asset, installed, currentProvider)
+    val action = when {
+        isInstalled -> stringResource(R.string.action_reinstall)
+        installed != null -> stringResource(R.string.action_switch_variant)
+        else -> stringResource(R.string.action_install_webview)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(RowBackground, RoundedCornerShape(12.dp))
+            .border(
+                width = 1.dp,
+                color = if (isCurrent) Accent else CardBorder,
+                shape = RoundedCornerShape(12.dp),
+            )
+            .padding(16.dp),
+    ) {
+        Text(
+            text = vm.assetTitle(asset),
+            color = TextPrimary,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        if (isCurrent || isInstalled || asset.recommended || asset.webgpu == false) {
+            Spacer(Modifier.height(7.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (asset.recommended) Badge(stringResource(R.string.badge_recommended))
+                if (isCurrent) Badge(stringResource(R.string.badge_current))
+                if (isInstalled && !isCurrent) Badge(stringResource(R.string.badge_installed))
+                if (asset.webgpu == false) Badge(stringResource(R.string.badge_webgpu_off))
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = variantMeta(vm, asset),
+            color = Muted,
+            fontSize = 12.sp,
+        )
+        vm.assetDescription(asset)?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = it,
+                color = TextPrimary,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = onSelect,
+            enabled = !busy,
+            modifier = actionModifier,
+            colors = if (asset.recommended || !isInstalled) {
+                primaryButtonColors()
+            } else {
+                secondaryButtonColors()
+            },
+        ) {
+            Text(action)
+        }
+    }
+}
+
+@Composable
+private fun Badge(text: String) {
+    Text(
+        text = text,
+        color = Accent,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier
+            .background(Accent.copy(alpha = 0.14f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    )
+}
+
+@Composable
+private fun variantMeta(vm: InstallerViewModel, asset: com.tvlaunchers.webviewinstaller.WebViewAsset): String {
+    val parts = ArrayList<String>()
+    parts.add(asset.versionName ?: stringResource(R.string.unknown))
+    if (asset.size > 0) parts.add(com.tvlaunchers.webviewinstaller.Http.formatSize(asset.size))
+    when (asset.signer) {
+        com.tvlaunchers.webviewinstaller.Known.SIGNER_PROJECT ->
+            parts.add(stringResource(R.string.signer_project))
+        com.tvlaunchers.webviewinstaller.Known.SIGNER_VENDOR ->
+            parts.add(stringResource(R.string.signer_vendor))
+    }
+    return parts.joinToString(" · ")
+}
+
+@Composable
+private fun ConfirmReplaceDialog(
+    vm: InstallerViewModel,
+    state: UiState,
+    dialog: DialogState.ConfirmReplace,
+) {
+    val asset = dialog.asset
+    val wasDefault = state.status?.currentProvider == asset.packageName
+    Column {
+        DialogTitle(stringResource(R.string.replace_title))
+        DialogBody(
+            stringResource(
+                if (wasDefault) R.string.replace_message_default else R.string.replace_message,
+                vm.assetTitle(asset),
+            )
+        )
+        DialogButtons(
+            cancelText = stringResource(R.string.action_cancel),
+            confirmText = stringResource(R.string.replace_yes),
+            onCancel = { vm.dismissDialog() },
+            onConfirm = { vm.confirmReplace() },
+            focusConfirm = false,
+            confirmColors = dangerButtonColors(),
+        )
     }
 }
 

@@ -93,6 +93,8 @@ object Http {
 
     fun sha256(file: File): String = file.inputStream().use { sha256(it) }
 
+    fun sha256(bytes: ByteArray): String = sha256(bytes.inputStream())
+
     fun sha256(input: InputStream): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val buf = ByteArray(128 * 1024)

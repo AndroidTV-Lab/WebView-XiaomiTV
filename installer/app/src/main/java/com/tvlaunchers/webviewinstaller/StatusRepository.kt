@@ -143,16 +143,20 @@ class StatusRepository(private val context: Context) {
         val result = LinkedHashMap<String, InstalledPackage>()
         for (packageName in Known.ALL_PACKAGES) {
             try {
-                val info = pm.getPackageInfo(packageName, 0)
+                @Suppress("DEPRECATION")
+                val info = pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
                 val enabledSetting = pm.getApplicationEnabledSetting(packageName)
                 val enabled = info.applicationInfo?.enabled != false &&
                     enabledSetting != PackageManager.COMPONENT_ENABLED_STATE_DISABLED &&
                     enabledSetting != PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER
+                @Suppress("DEPRECATION")
+                val signer = info.signatures?.firstOrNull()?.let { Http.sha256(it.toByteArray()) }
                 result[packageName] = InstalledPackage(
                     packageName = packageName,
                     versionName = info.versionName,
                     versionCode = info.longVersionCode,
                     enabled = enabled,
+                    signerSha256 = signer,
                 )
             } catch (_: PackageManager.NameNotFoundException) {
                 // Not installed.

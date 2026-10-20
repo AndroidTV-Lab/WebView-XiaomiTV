@@ -22,6 +22,50 @@ object RootTasks {
         echo "OK" > "${'$'}EXIT"
     """.trimIndent()
 
+    /**
+     * Replaces an installed provider with an APK signed by a different key. Android refuses
+     * `pm install -r` across signatures ([PackageManager.INSTALL_FAILED_UPDATE_INCOMPATIBLE]),
+     * so the old package has to be removed first. When it is the current default, the system
+     * provider is selected before the removal so the system never points at a missing package.
+     */
+    fun replace(
+        apkPath: String,
+        packageName: String,
+        publicName: String,
+        wasDefault: Boolean,
+    ): String {
+        val fallback = if (wasDefault) """
+            # Never leave the system pointing at a package that is about to disappear.
+            run pm enable ${Known.AOSP_PACKAGE}
+            run settings put global webview_provider ${Known.AOSP_PACKAGE}
+        """.trimIndent() else ""
+        return """
+            echo "START replace $packageName"
+            # The app process cannot write public storage on this firmware (WRITE_EXTERNAL_STORAGE
+            # maps to no gids), so the user-visible copy is published here, as root.
+            run mkdir -p /sdcard/Download
+            run cp '$apkPath' '/sdcard/Download/$publicName' || run echo "WARN: publish apk failed"
+            run chmod 644 '/sdcard/Download/$publicName'
+            TMP='/data/local/tmp/wvi_install.apk'
+            run cp '$apkPath' "${'$'}TMP" || fail "copy apk to /data/local/tmp failed"
+            run chmod 644 "${'$'}TMP"
+            $fallback
+            run pm uninstall --user 0 '$packageName'
+            RC=${'$'}?
+            if [ "${'$'}RC" -ne 0 ]; then
+              run rm -f "${'$'}TMP"
+              fail "pm uninstall failed (rc=${'$'}RC)"
+            fi
+            run pm install -r --user 0 "${'$'}TMP"
+            RC=${'$'}?
+            run rm -f "${'$'}TMP"
+            if [ "${'$'}RC" -ne 0 ]; then
+              fail "pm install failed (rc=${'$'}RC)"
+            fi
+            echo "OK" > "${'$'}EXIT"
+        """.trimIndent()
+    }
+
     fun overlay(apkPath: String): String = """
         echo "START overlay"
         # /product/overlay is the standard RRO location on Android 9; /product is mounted ro.

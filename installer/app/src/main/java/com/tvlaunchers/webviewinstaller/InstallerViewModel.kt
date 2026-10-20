@@ -1,11 +1,13 @@
 package com.tvlaunchers.webviewinstaller
 
 import android.app.Application
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.io.IOException
+import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -163,10 +165,13 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
         _ui.update { it.copy(selectedProvider = packageName) }
     }
 
-    /** An installed WebView opens this dialog instead of a separate detail screen. */
-    fun openManage(packageName: String) {
+    /**
+     * A WebView family opens the variant picker; the same dialog serves install, switch and
+     * management, so the user can compare the available packages before installing.
+     */
+    fun openVariants(packageName: String) {
         if (Known.targetFor(packageName) == null) return
-        _ui.update { it.copy(dialog = DialogState.Manage(packageName)) }
+        _ui.update { it.copy(dialog = DialogState.Variants(packageName)) }
     }
 
     fun requestDownload(asset: WebViewAsset) {
@@ -186,11 +191,19 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
         DownloadService.start(
             context = context,
             asset = asset,
-            displayName = label(asset.packageName),
+            displayName = assetTitle(asset),
             dest = dest,
             urls = Releases.candidates(Releases.assetUrl(asset.fileName)),
         )
         _ui.update { it.copy(dialog = null) }
+    }
+
+    /** The replacement confirmed by the user; the downloaded APK is already on disk. */
+    fun confirmReplace() {
+        val dialog = _ui.value.dialog as? DialogState.ConfirmReplace ?: return
+        if (!requireRoot()) return
+        _ui.update { it.copy(dialog = null) }
+        installApk(dialog.asset, dialog.path, replace = true)
     }
 
     fun retryDownload() {
@@ -399,6 +412,52 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
         return packageName
     }
 
+    /** Manifest titles are optional; the family name remains a usable fallback. */
+    fun assetTitle(asset: WebViewAsset): String {
+        val english = Locale.getDefault().language == "en"
+        val localized = if (english) {
+            asset.titleEn ?: asset.title
+        } else {
+            asset.title ?: asset.titleEn
+        }
+        return localized ?: label(asset.packageName)
+    }
+
+    fun assetDescription(asset: WebViewAsset): String? {
+        val english = Locale.getDefault().language == "en"
+        return (if (english) {
+            asset.descriptionEn ?: asset.description
+        } else {
+            asset.description ?: asset.descriptionEn
+        })?.takeIf { it.isNotBlank() }
+    }
+
+    /** [Known.SIGNER_PROJECT] or [Known.SIGNER_VENDOR], from the installed certificate. */
+    fun signerKind(signerSha256: String?): String? = signerSha256?.let {
+        if (it.equals(Known.PROJECT_SIGNER_SHA256, ignoreCase = true)) {
+            Known.SIGNER_PROJECT
+        } else {
+            Known.SIGNER_VENDOR
+        }
+    }
+
+    /**
+     * Stock and patched builds of one WebView can share a versionCode and differ only by
+     * signer, so both are part of the identity.
+     */
+    fun isInstalled(asset: WebViewAsset, installed: InstalledPackage?): Boolean {
+        if (installed == null) return false
+        if (asset.versionCode != null && installed.versionCode != asset.versionCode) return false
+        val kind = signerKind(installed.signerSha256)
+        return asset.signer == null || kind == null || asset.signer == kind
+    }
+
+    fun isCurrent(
+        asset: WebViewAsset,
+        installed: InstalledPackage?,
+        currentProvider: String?,
+    ): Boolean = currentProvider == asset.packageName && isInstalled(asset, installed)
+
     private fun start() {
         if (started) return
         started = true
@@ -423,7 +482,8 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun onDownloaded(asset: WebViewAsset, path: String) {
         val context = getApplication<Application>()
-        val info = context.packageManager.getPackageArchiveInfo(path, 0)
+        @Suppress("DEPRECATION")
+        val info = context.packageManager.getPackageArchiveInfo(path, PackageManager.GET_SIGNATURES)
         if (info?.packageName != asset.packageName) {
             showError(
                 getString(R.string.error_title),
@@ -434,22 +494,50 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
             )
             return
         }
-        installApk(asset, path)
+        @Suppress("DEPRECATION")
+        val apkSigner = info.signatures?.firstOrNull()?.let { Http.sha256(it.toByteArray()) }
+        viewModelScope.launch {
+            // Compare the APK signature with the installed one before touching the device:
+            // `pm install -r` cannot cross signing keys. A stale status must not decide this,
+            // so re-read the installed package here.
+            val installedSigner = runCatching {
+                @Suppress("DEPRECATION")
+                getApplication<Application>().packageManager
+                    .getPackageInfo(asset.packageName, PackageManager.GET_SIGNATURES)
+                    .signatures?.firstOrNull()?.let { Http.sha256(it.toByteArray()) }
+            }.getOrNull()
+            if (installedSigner != null && apkSigner != null &&
+                !installedSigner.equals(apkSigner, ignoreCase = true)
+            ) {
+                _ui.update { it.copy(dialog = DialogState.ConfirmReplace(asset, path)) }
+                return@launch
+            }
+            installApk(asset, path, replace = false)
+        }
     }
 
-    private fun installApk(asset: WebViewAsset, path: String) {
+    private fun installApk(asset: WebViewAsset, path: String, replace: Boolean) {
         viewModelScope.launch {
+            val wasDefault = _ui.value.status?.currentProvider == asset.packageName
+            val displayName = assetTitle(asset)
             _ui.update {
-                it.copy(busyLabel = getString(R.string.install_running, label(asset.packageName)))
+                it.copy(
+                    busyLabel = if (replace) {
+                        getString(R.string.install_replacing, displayName)
+                    } else {
+                        getString(R.string.install_running, displayName)
+                    },
+                )
             }
             val publicName = publicFileName(asset)
+            val script = if (replace) {
+                RootTasks.replace(path, asset.packageName, publicName, wasDefault)
+            } else {
+                RootTasks.install(path, asset.packageName, publicName)
+            }
             val result = RootShell.run(
                 workDir = RootPaths.workDir(getApplication()),
-                scriptBody = RootTasks.install(
-                    path,
-                    asset.packageName,
-                    publicName,
-                ),
+                scriptBody = script,
                 timeoutMs = 300_000,
             )
             _ui.update { it.copy(busyLabel = null) }
@@ -461,7 +549,7 @@ class InstallerViewModel(application: Application) : AndroidViewModel(applicatio
                 )
                 return@launch
             }
-            toast(getString(R.string.install_success, label(asset.packageName)))
+            toast(getString(R.string.install_success, displayName))
             refresh(remote = false)
             val overlayReady = _ui.value.status?.overlayRecognized == true
             // Ask about the downloaded files first; the default-WebView prompt follows either way.

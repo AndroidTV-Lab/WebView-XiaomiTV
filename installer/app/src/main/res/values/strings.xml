@@ -59,14 +59,30 @@
     <string name="action_set_default">设置默认</string>
     <string name="action_uninstall">卸载</string>
     <string name="action_cancel">取消</string>
-    <string name="manage_message">当前版本 %1$s · 远端版本 %2$s</string>
+    <string name="action_reinstall">重新安装</string>
+    <string name="action_switch_variant">切换到此版本</string>
     <string name="action_restore">恢复系统默认设置</string>
     <string name="restore_row_hint">不可撤销</string>
     <string name="hint_set_default">设置</string>
     <string name="hint_deploy">部署</string>
     <string name="hint_download">下载</string>
-    <string name="hint_manage">管理</string>
+    <string name="hint_variants">选择版本</string>
     <string name="hint_restore">恢复</string>
+
+    <string name="variants_title">%1$s 版本</string>
+    <string name="variants_installed_line">已安装：%1$s（版本 %2$s）</string>
+    <string name="badge_recommended">推荐</string>
+    <string name="badge_current">当前默认</string>
+    <string name="badge_installed">已安装</string>
+    <string name="badge_webgpu_off">WebGPU 已关闭</string>
+    <string name="signer_project">项目签名</string>
+    <string name="signer_vendor">厂商签名</string>
+
+    <string name="replace_title">签名不一致</string>
+    <string name="replace_message">%1$s 使用不同的签名密钥，无法覆盖安装。需要先卸载当前的 WebView，再安装所选版本。</string>
+    <string name="replace_message_default">%1$s 使用不同的签名密钥。安装前会先把默认 WebView 切换到系统 WebView，然后卸载并安装所选版本。</string>
+    <string name="replace_yes">卸载并安装</string>
+    <string name="install_replacing">正在替换 %1$s…</string>
 
     <string name="non_mulan_title">非目标设备</string>
     <string name="non_mulan_message">当前设备代号为 %1$s，不是 mulan。继续操作可能写入错误的分区，或完全不起作用。</string>

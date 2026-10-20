@@ -59,14 +59,30 @@
     <string name="action_set_default">Set default</string>
     <string name="action_uninstall">Uninstall</string>
     <string name="action_cancel">Cancel</string>
-    <string name="manage_message">Installed %1$s · Remote %2$s</string>
+    <string name="action_reinstall">Reinstall</string>
+    <string name="action_switch_variant">Switch to this version</string>
     <string name="action_restore">Restore system defaults</string>
     <string name="restore_row_hint">Cannot be undone</string>
     <string name="hint_set_default">Set</string>
     <string name="hint_deploy">Deploy</string>
     <string name="hint_download">Download</string>
-    <string name="hint_manage">Manage</string>
+    <string name="hint_variants">Versions</string>
     <string name="hint_restore">Restore</string>
+
+    <string name="variants_title">%1$s versions</string>
+    <string name="variants_installed_line">Installed: %1$s (version %2$s)</string>
+    <string name="badge_recommended">Recommended</string>
+    <string name="badge_current">Current</string>
+    <string name="badge_installed">Installed</string>
+    <string name="badge_webgpu_off">WebGPU off</string>
+    <string name="signer_project">Project signature</string>
+    <string name="signer_vendor">Vendor signature</string>
+
+    <string name="replace_title">Signature mismatch</string>
+    <string name="replace_message">%1$s is signed with a different key and cannot be updated in place. The current WebView must be uninstalled before the selected version can be installed.</string>
+    <string name="replace_message_default">%1$s is signed with a different key. The default WebView will temporarily switch to the system WebView while the selected version replaces it.</string>
+    <string name="replace_yes">Uninstall and install</string>
+    <string name="install_replacing">Replacing %1$s…</string>
 
     <string name="non_mulan_title">Unexpected device</string>
     <string name="non_mulan_message">This device code is %1$s, not mulan. Continuing may write to the wrong partition or have no effect at all.</string>
