@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 object Releases {
-    const val REPO = "TVLaunchers/WebView-XiaomiTV"
+    const val REPO = "AndroidTV-Lab/WebView-XiaomiTV"
     private const val BASE = "https://github.com/$REPO/releases"
 
     // WebView APKs live in a fixed assets release; the dated releases only archive builds.

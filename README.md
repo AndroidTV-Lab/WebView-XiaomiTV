@@ -21,7 +21,7 @@ WebView 提供者列表，并同时信任厂商签名与项目签名，因此原
 
 ## 安装
 
-从 [Releases](https://github.com/TVLaunchers/WebView-XiaomiTV/releases/latest)
+从 [Releases](https://github.com/AndroidTV-Lab/WebView-XiaomiTV/releases/latest)
 下载 `WebViewInstaller.apk`，然后：
 
 - 用 U 盘拷到电视，通过文件管理器安装；或
